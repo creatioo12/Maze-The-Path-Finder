@@ -1,0 +1,3432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Maze: The Path Finder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-cream: #FDFCF0;
+            --accent-stone: #8B7E66;
+            --text-dark: #5D5443;
+            --border-light: #D4CEAF;
+        }
+
+        /* Prevent scrolling and ensure full height on mobile browsers */
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            position: fixed;
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: var(--bg-cream);
+            margin: 0;
+            color: var(--text-dark);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Page Transition Animation */
+        .page-fade {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Standard Button Styles */
+        .btn-ui {
+            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+            position: relative;
+            z-index: 10;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-stone);
+            color: var(--bg-cream);
+            touch-action: manipulation;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(139, 126, 102, 0.3);
+            filter: brightness(1.05);
+        }
+
+        .btn-primary:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--accent-stone);
+            border: 2px solid var(--border-light);
+            touch-action: manipulation;
+        }
+
+        .btn-secondary:hover {
+            background-color: white;
+            border-color: var(--accent-stone);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary:active {
+            transform: scale(0.98);
+        }
+
+        /* Custom Page Specific Styles */
+        .option-card {
+            background: white;
+            border: 2px solid var(--border-light);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .option-card.selected {
+            border-color: var(--accent-stone);
+            background-color: #F7F5E6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 126, 102, 0.1);
+        }
+
+        .responsive-title {
+            font-size: clamp(2.5rem, 12vw, 4.5rem);
+        }
+
+        .blob {
+            position: absolute;
+            z-index: 0;
+            filter: blur(60px);
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .safe-padding {
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-top: env(safe-area-inset-top);
+        }
+
+        /* Subtle logo float animation */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .logo-animate {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        /* Hide scrollbars but allow vertical scrolling on the custom page if needed */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        #maze-canvas {
+            image-rendering: auto;
+            max-width: 100%;
+            height: auto;
+            touch-action: none; /* Critical for swipe gestures */
+            /* Removed transition to prevent rotation animation on load */
+        }
+
+        /* Hint Dialog Styling */
+        .hint-dialog {
+            transform-origin: top left;
+            animation: popIn 0.2s ease-out;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.9) translateY(-10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* Time Out Animation */
+        .timeout-overlay {
+            animation: timeoutFade 0.5s ease-out forwards;
+        }
+
+        @keyframes timeoutFade {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Hurry/Vibrate Animation */
+        @keyframes vibrate {
+            0% { transform: translate(0, 0) rotate(0); }
+            25% { transform: translate(1px, 1px) rotate(1deg); }
+            50% { transform: translate(-1px, -1px) rotate(-1deg); }
+            75% { transform: translate(1px, -1px) rotate(1deg); }
+            100% { transform: translate(0, 0) rotate(0); }
+        }
+        .hurry-vibrate {
+            animation: vibrate 0.1s linear infinite;
+        }
+        .text-hurry {
+            color: #ef4444 !important;
+            transform: scale(1.2);
+            transition: all 0.2s ease;
+        }
+
+        /* Currency Animation */
+        @keyframes coin-pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+        .coin-anim {
+            animation: coin-pop 0.3s ease-in-out;
+        }
+        .shake-error {
+            animation: vibrate 0.3s linear;
+            color: #ef4444;
+        }
+
+        /* NEW: Disabled Ability Style */
+        .ability-disabled {
+            opacity: 0.3;
+            filter: grayscale(100%);
+            cursor: not-allowed !important;
+            pointer-events: none;
+        }
+        
+        /* Zone Animation */
+        @keyframes pulse-zone {
+            0% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+            100% { opacity: 0.6; transform: scale(1); }
+        }
+        .zone-active-icon {
+            animation: pulse-zone 1.5s infinite;
+            color: #22c55e;
+        }
+
+        @keyframes pulse-red {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .zone-countdown-active {
+            animation: pulse-red 0.8s infinite;
+            color: #ef4444;
+        }
+
+        /* Levels Grid Styling */
+        .levels-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 12px;
+            padding: 20px;
+        }
+        .level-btn {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border: 2px solid var(--border-light);
+            border-radius: 12px;
+            font-weight: bold;
+            color: var(--accent-stone);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .level-btn:hover {
+            border-color: var(--accent-stone);
+            background: #F7F5E6;
+            transform: translateY(-2px);
+        }
+        .level-btn.active {
+            background: var(--accent-stone);
+            color: white;
+            border-color: var(--accent-stone);
+        }
+        .level-btn.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f1f1f1;
+            border-color: #e5e5e5;
+            color: #999;
+            pointer-events: none;
+            position: relative;
+        }
+        
+        .locked {
+            opacity: 0.5;
+            cursor: not-allowed !important;
+            filter: grayscale(0.8);
+            pointer-events: none;
+            position: relative;
+        }
+    </style>
+</head>
+<body class="safe-padding">
+    <div class="blob w-[30vw] h-[30vw] bg-[#F2E9D0] -top-10 -left-10 rounded-full"></div>
+    <div class="blob w-[40vw] h-[40vw] bg-[#E5DEC1] bottom-0 right-0 rounded-full"></div>
+
+    <div id="app" class="relative z-10 w-full h-full">
+        <!-- Home Page -->
+        <div id="page-home" class="page-fade flex flex-col min-h-full w-full px-8 py-10">
+            
+            <!-- Branding Header -->
+            <header class="flex-grow flex flex-col items-center justify-center text-center">
+                <div class="flex justify-center mb-8 logo-animate">
+                    <div class="relative">
+                        <!-- Abstract Maze Logo -->
+                        <svg width="clamp(70px, 15vw, 100px)" height="clamp(70px, 15vw, 100px)" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 10H80C85.5228 10 90 14.4772 90 20V80C90 85.5228 85.5228 90 80 90H20C14.4772 90 10 85.5228 10 80V20C10 14.4772 14.4772 10 20 10Z" stroke="var(--border-light)" stroke-width="2" stroke-dasharray="4 4"/>
+                            <path d="M30 30H70V50H50V70H30" stroke="var(--accent-stone)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M70 70V60" stroke="var(--accent-stone)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M30 45V30" stroke="var(--accent-stone)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="30" cy="30" r="4" fill="var(--accent-stone)"/>
+                            <circle cx="70" cy="70" r="4" fill="var(--accent-stone)"/>
+                        </svg>
+                    </div>
+                </div>
+                <h1 class="responsive-title font-bold tracking-tight leading-none mb-2">
+                    maze
+                </h1>
+                <p class="text-sm md:text-xl font-semibold text-[#8B7E66] uppercase tracking-[0.2em] md:tracking-[0.3em]">
+                    the path finder
+                </p>
+            </header>
+
+            <!-- Navigation Menu -->
+            <nav class="w-full max-w-[320px] mx-auto space-y-4 mb-12">
+                <button onclick="playNow()" class="btn-ui btn-primary w-full py-4 md:py-5 px-8 rounded-2xl font-bold text-xl md:text-2xl shadow-md">
+                    Play Now
+                </button>
+                
+                <button id="btn-custom-level" onclick="navigateTo('custom')" class="btn-ui btn-secondary w-full py-4 md:py-5 px-8 rounded-2xl font-bold text-xl md:text-2xl">
+                    Custom Level
+                </button>
+            </nav>
+
+            <!-- Footer -->
+            <footer class="text-center opacity-60 pb-4">
+                <p class="text-xs md:text-sm text-[#8B7E66] font-medium tracking-wide">
+                    A minimal puzzle experience
+                </p>
+            </footer>
+        </div>
+
+        <!-- Custom Level Page -->
+        <div id="page-custom" class="hidden page-fade flex flex-col w-full h-full overflow-y-auto no-scrollbar px-6 py-10 md:px-12">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-8">
+                <button onclick="navigateTo('home')" class="p-2 -ml-2 text-[#8B7E66]">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <h2 class="text-xl font-bold uppercase tracking-widest text-[#8B7E66]">Configure</h2>
+                <div class="w-8"></div> <!-- Spacer -->
+            </div>
+
+            <div class="max-w-xl mx-auto w-full space-y-10">
+                <!-- Step 1: Difficulty -->
+                <section class="space-y-4">
+                    <h3 class="text-lg font-bold flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-[#8B7E66] text-[#FDFCF0] flex items-center justify-center text-xs">1</span>
+                        Choose Difficulty
+                    </h3>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div onclick="selectOption('difficulty', 'easy')" id="diff-easy" class="option-card selected rounded-xl p-4 text-center">
+                            <p class="font-bold text-sm">Easy</p>
+                            <p class="text-[10px] opacity-60">+1 Key</p>
+                        </div>
+                        <div onclick="selectOption('difficulty', 'medium')" id="diff-medium" class="option-card rounded-xl p-4 text-center">
+                            <p class="font-bold text-sm">Medium</p>
+                            <p class="text-[10px] opacity-60">+2 Keys</p>
+                        </div>
+                        <div onclick="selectOption('difficulty', 'hard')" id="diff-hard" class="option-card rounded-xl p-4 text-center">
+                            <p class="font-bold text-sm">Hard</p>
+                            <p class="text-[10px] opacity-60">+3 Keys</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 2: Mode -->
+                <section class="space-y-4 pb-8">
+                    <h3 class="text-lg font-bold flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-[#8B7E66] text-[#FDFCF0] flex items-center justify-center text-xs">2</span>
+                        Game Mode
+                    </h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div onclick="selectOption('mode', 'normal')" id="mode-normal" class="option-card selected rounded-xl p-4 flex flex-col gap-1">
+                            <div class="flex items-center justify-between w-full">
+                                <p class="font-bold">Normal</p>
+                                <div class="w-4 h-4 rounded-full border-2 border-[#8B7E66] flex items-center justify-center"><div class="w-2 h-2 bg-[#8B7E66] rounded-full"></div></div>
+                            </div>
+                            <p class="text-[10px] opacity-60 leading-tight">+1 Key</p>
+                        </div>
+                        <!-- Time Mode -->
+                        <div onclick="selectOption('mode', 'time')" id="mode-time" class="option-card rounded-xl p-4 flex flex-col gap-1">
+                            <div class="flex items-center justify-between w-full">
+                                <p class="font-bold">Time</p>
+                                <div class="w-4 h-4 rounded-full border-2 border-[#D4CEAF] flex items-center justify-center"></div>
+                            </div>
+                            <p class="text-[10px] opacity-60 leading-tight">+2 Keys</p>
+                        </div>
+                        <!-- Dark Mode -->
+                        <div onclick="selectOption('mode', 'dark')" id="mode-dark" class="option-card rounded-xl p-4 flex flex-col gap-1">
+                            <div class="flex items-center justify-between w-full">
+                                <p class="font-bold">Dark</p>
+                                <div class="w-4 h-4 rounded-full border-2 border-[#D4CEAF] flex items-center justify-center"></div>
+                            </div>
+                            <p class="text-[10px] opacity-60 leading-tight">+3 Keys</p>
+                        </div>
+                         <!-- Enemy Mode -->
+                        <div onclick="selectOption('mode', 'enemy')" id="mode-enemy" class="option-card rounded-xl p-4 flex flex-col gap-1">
+                            <div class="flex items-center justify-between w-full">
+                                <p class="font-bold">Enemy</p>
+                                <div class="w-4 h-4 rounded-full border-2 border-[#D4CEAF] flex items-center justify-center"></div>
+                            </div>
+                            <p class="text-[10px] opacity-60 leading-tight">+4 Keys</p>
+                        </div>
+                        <!-- Ghost Mode -->
+                        <div onclick="selectOption('mode', 'ghost')" id="mode-ghost" class="option-card rounded-xl p-4 flex flex-col gap-1">
+                            <div class="flex items-center justify-between w-full">
+                                <p class="font-bold">Ghost</p>
+                                <div class="w-4 h-4 rounded-full border-2 border-[#D4CEAF] flex items-center justify-center"></div>
+                            </div>
+                            <p class="text-[10px] opacity-60 leading-tight">+5 Keys</p>
+                        </div>
+                        <!-- NEW: Zone Mode -->
+                        <div onclick="selectOption('mode', 'zone')" id="mode-zone" class="option-card rounded-xl p-4 flex flex-col gap-1">
+                            <div class="flex items-center justify-between w-full">
+                                <p class="font-bold">Zone</p>
+                                <div class="w-4 h-4 rounded-full border-2 border-[#D4CEAF] flex items-center justify-center"></div>
+                            </div>
+                            <p class="text-[10px] opacity-60 leading-tight">+6 Keys</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Action Button -->
+                <div class="pt-4">
+                    <button onclick="startCustomGame()" class="btn-ui btn-primary w-full py-5 rounded-2xl font-bold text-xl shadow-lg">
+                        Build My Maze
+                    </button>
+                </div>
+
+                <!-- Random Option Button: Pick random difficulty and mode -->
+                <div class="pt-2">
+                    <button onclick="selectRandomOptions()" class="btn-ui btn-secondary w-full py-4 rounded-2xl font-bold text-lg border-dashed border-2 hover:bg-[#F7F5E6] transition-all">
+                        Random
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Levels Page -->
+        <div id="page-levels" class="hidden page-fade flex flex-col w-full h-full overflow-y-auto no-scrollbar px-6 py-10 md:px-12">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-8">
+                <button onclick="navigateTo('home')" class="p-2 -ml-2 text-[#8B7E66]">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <h2 class="text-xl font-bold uppercase tracking-widest text-[#8B7E66]">Select Level</h2>
+                <div class="w-8"></div>
+            </div>
+
+            <div id="levels-container" class="max-w-xl mx-auto w-full levels-grid">
+                <!-- Level buttons will be injected here -->
+            </div>
+        </div>
+
+        <!-- NEW: Help Page -->
+        <div id="page-help" class="hidden page-fade flex flex-col w-full h-full overflow-y-auto no-scrollbar px-6 py-10 md:px-12">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-8">
+                <button onclick="navigateTo('game')" class="p-2 -ml-2 text-[#8B7E66]">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <h2 class="text-xl font-bold uppercase tracking-widest text-[#8B7E66]">Guide</h2>
+                <div class="w-8"></div>
+            </div>
+
+            <div class="max-w-xl mx-auto w-full space-y-8 text-[#5D5443]">
+                <!-- Basics -->
+                <section class="space-y-3">
+                    <h3 class="text-lg font-bold border-b border-[#D4CEAF] pb-2 text-[#8B7E66]">Goal</h3>
+                    <p class="text-sm leading-relaxed font-medium">Navigate the maze to find the exit. Use arrow keys or swipe gestures to move. Collect keys by completing levels to track your progress.</p>
+                </section>
+
+                <!-- Abilities Logic -->
+                <section class="space-y-3">
+                    <h3 class="text-lg font-bold border-b border-[#D4CEAF] pb-2 text-[#8B7E66]">Special Abilities</h3>
+                    <p class="text-sm leading-relaxed font-medium">In special modes (Time, Dark, Enemy, Ghost, Zone), you get a unique ability button. Instead of costing currency, these have usage limits based on difficulty:</p>
+                    <div class="grid grid-cols-3 gap-2 mt-2">
+                        <div class="bg-white border border-[#D4CEAF] rounded-lg p-3 text-center">
+                            <span class="block font-bold text-[#8B7E66]">Easy</span>
+                            <span class="text-xs text-gray-500">1 Use</span>
+                        </div>
+                        <div class="bg-white border border-[#D4CEAF] rounded-lg p-3 text-center">
+                            <span class="block font-bold text-[#8B7E66]">Medium</span>
+                            <span class="text-xs text-gray-500">2 Uses</span>
+                        </div>
+                        <div class="bg-white border border-[#D4CEAF] rounded-lg p-3 text-center">
+                            <span class="block font-bold text-[#8B7E66]">Hard</span>
+                            <span class="text-xs text-gray-500">3 Uses</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Modes Detail -->
+                <section class="space-y-3">
+                    <h3 class="text-lg font-bold border-b border-[#D4CEAF] pb-2 text-[#8B7E66]">Modes & Monsters</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3">
+                            <div class="p-2 bg-white rounded-lg border border-[#D4CEAF] shrink-0">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B7E66" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm">Time Mode</h4>
+                                <p class="text-xs opacity-70 mt-1">Race against the clock. Use the ability button to add bonus time.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <div class="p-2 bg-white rounded-lg border border-[#D4CEAF] shrink-0">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B7E66" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm">Dark Mode</h4>
+                                <p class="text-xs opacity-70 mt-1">Visibility is limited. Use the ability button to temporarily illuminate the maze.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <div class="p-2 bg-white rounded-lg border border-[#D4CEAF] shrink-0">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="#8B7E66"><path d="M12 2C7 2 3 6 3 11v8l3-3 3 3 3-3 3 3 3-3 3 3v-8c0-5-4-9-9-9z"/><rect x="7" y="9" width="2" height="2" fill="white"/><rect x="15" y="9" width="2" height="2" fill="white"/></svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm">Enemy Mode</h4>
+                                <p class="text-xs opacity-70 mt-1">Avoid guardians. Use ability to freeze them for 5s.</p>
+                                <ul class="text-xs mt-2 space-y-1 list-disc list-inside opacity-80">
+                                    <li><span class="text-blue-500 font-bold">Blue</span>: Balanced stats.</li>
+                                    <li><span class="text-yellow-600 font-bold">Yellow</span>: Fast speed, low vision.</li>
+                                    <li><span class="text-purple-600 font-bold">Purple</span>: Very fast, high vision.</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <div class="p-2 bg-white rounded-lg border border-[#D4CEAF] shrink-0">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="#8B7E66" stroke="#8B7E66"><path d="M9 22l1-1.5L11.5 22l1.5-1.5L14.5 22l1.5-1.5 1-1.5V10a8 8 0 1 0-16 0v9l1 1.5 1.5 1.5 1.5-1.5 1 1.5z"/><path stroke="white" stroke-width="0" fill="white" d="M8 10h2v2H8zM14 10h2v2h-2z"/></svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm">Ghost Mode</h4>
+                                <p class="text-xs opacity-70 mt-1">Invisible stalkers. They appear when close. Use ability to reveal them for 5s.</p>
+                            </div>
+                        </div>
+
+                         <div class="flex items-start gap-3">
+                            <div class="p-2 bg-white rounded-lg border border-[#D4CEAF] shrink-0">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm">Zone Mode</h4>
+                                <p class="text-xs opacity-70 mt-1">A deadly flood consumes the maze. Reach the Safe Zone (Green) and <strong>wait</strong> until the flood passes. Use Shield ability to dissipate a wave instantly.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Game Page -->
+        <div id="page-game" class="hidden page-fade flex flex-col items-center justify-center w-full h-full px-4 text-center">
+            
+            <!-- Tutorial Overlay -->
+            <div id="tutorial-overlay" class="hidden fixed inset-0 z-[100] pointer-events-none">
+                <div id="tutorial-box" class="absolute bg-white p-4 rounded-xl shadow-2xl border-2 border-[#8B7E66] w-[180px] pointer-events-auto transition-all duration-300">
+                    <p id="tutorial-text" class="text-xs font-bold text-[#5D5443] leading-tight"></p>
+                    <div id="tutorial-pointer" class="absolute w-4 h-4 bg-white border-r-2 border-b-2 border-[#8B7E66] rotate-45"></div>
+                    <button onclick="nextTutorial()" class="mt-3 w-full py-2 bg-[#8B7E66] text-white text-[10px] font-bold rounded-lg hover:brightness-110 transition-all">Got it!</button>
+                </div>
+            </div>
+
+            <!-- Unified Wrapper for Header and Maze -->
+            <div class="w-full max-w-[400px] flex flex-col items-center">
+                <!-- Header with reduced bottom margin for mobile -->
+                <header class="mb-1 md:mb-4 w-full flex items-center justify-between">
+                    <div class="flex items-center gap-1 relative">
+                        <button onclick="navigateTo('home')" class="p-2 text-[#8B7E66] hover:bg-black/5 rounded-full transition-colors">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+                        </button>
+                        <!-- Hint Button -->
+                        <div class="relative">
+                            <button onclick="toggleHintMenu(event)" class="p-2 text-[#8B7E66] hover:bg-black/5 rounded-full transition-colors">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+                            </button>
+                            <div id="hint-menu" class="hidden absolute left-0 top-full mt-2 w-40 bg-white rounded-xl shadow-xl border border-[--border-light] z-50 overflow-hidden hint-dialog">
+                                <button onclick="selectHint('Next Step')" class="w-full text-left px-4 py-3 text-xs font-bold hover:bg-[#FDFCF0] transition-colors border-b border-[--border-light] text-[#8B7E66] flex justify-between">
+                                    <span>Next Step</span> <span class="text-[#eab308]">-10</span>
+                                </button>
+                                <button id="btn-hint-flash" onclick="selectHint('Flash')" class="w-full text-left px-4 py-3 text-xs font-bold hover:bg-[#FDFCF0] transition-colors border-b border-[--border-light] text-[#8B7E66] flex justify-between">
+                                    <span>Flash</span> <span class="text-[#eab308]">-20</span>
+                                </button>
+                                <button onclick="selectHint('Teleport')" class="w-full text-left px-4 py-3 text-xs font-bold hover:bg-[#FDFCF0] transition-colors text-[#8B7E66] flex justify-between">
+                                    <span>Teleport</span> <span class="text-[#eab308]">-40</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="handleHeaderNavigation()" class="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.2em] text-[#8B7E66] hover:bg-black/5 px-2 py-1 rounded-lg transition-colors">
+                        <span id="level-number-display" class="mr-1"></span><span id="level-label">Levels</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    
+                    <div class="flex items-center gap-1">
+                        <!-- Key Counter -->
+                        <div class="flex items-center gap-1 mr-2 px-2 py-0.5 bg-[#F7F5E6] rounded-full border border-[--border-light]">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                            <span id="game-key-count" class="font-bold text-xs text-[#8B7E66]">0</span>
+                        </div>
+
+                        <!-- Pause Button (Now Functional with Icon Toggle) -->
+                        <button id="btn-pause" onclick="togglePause()" class="p-2 text-[#8B7E66] hover:bg-black/5 rounded-full transition-colors">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                        </button>
+                        <button id="btn-mute" onclick="toggleMute()" class="p-2 text-[#8B7E66] hover:bg-black/5 rounded-full transition-colors">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" id="mute-icon">
+                                <path d="M11 5 6 9H2v6h4l5 4V5z"/>
+                                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                            </svg>
+                        </button>
+                        <button onclick="initGame()" class="p-2 text-[#8B7E66] hover:bg-black/5 rounded-full transition-colors">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Game Content Row -->
+                <div class="flex flex-col md:flex-row items-center justify-center w-full relative">
+                    <!-- Sidebar Controls (Time/Dark Info/Settings) -->
+                    <!-- Updated Layout: Flow items on mobile (start aligned), Absolute Top-Left on Desktop -->
+                    <div id="side-info-container" class="hidden flex flex-row md:flex-col gap-6 md:gap-4 w-full md:w-auto items-center justify-start md:justify-center z-20 mb-2 md:mb-0 md:absolute md:right-full md:mr-6 md:top-0">
+                        
+                        <!-- Settings Component - Clean Look with Toggle Menu -->
+                        <div class="relative group">
+                            <!-- ADDED shrink-0 to prevent SVG distortion -->
+                            <div id="settings-ui" onclick="toggleSettings(event)" class="shrink-0 flex flex-col items-center justify-center cursor-pointer hover:scale-110 transition-transform">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B7E66" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                </svg>
+                            </div>
+                            <!-- Settings Menu (Auto Move Toggle) -->
+                            <div id="settings-menu" class="hidden absolute top-full left-0 md:left-full md:top-0 mt-2 md:mt-0 md:ml-2 bg-white rounded-xl shadow-xl border border-[--border-light] z-50 p-3 min-w-[160px] hint-dialog">
+                                <div class="flex items-center justify-between gap-3 cursor-pointer mb-3" onclick="toggleAutoMove(event)">
+                                    <span class="text-xs font-bold text-[#8B7E66]">Automatic Move</span>
+                                    <!-- IMPROVED TOGGLE BUTTON -->
+                                    <div class="relative inline-block w-10 h-6">
+                                        <div id="auto-move-bg" class="w-full h-full bg-gray-300 rounded-full transition-colors duration-200"></div>
+                                        <div id="auto-move-dot" class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow-sm"></div>
+                                    </div>
+                                </div>
+                                <!-- NEW: Dynamic Ball Toggle -->
+                                <div class="flex items-center justify-between gap-3 cursor-pointer mb-3" onclick="toggleDynamicBall(event)">
+                                    <span class="text-xs font-bold text-[#8B7E66]">Dynamic Ball</span>
+                                    <div class="relative inline-block w-10 h-6">
+                                        <div id="dynamic-ball-bg" class="w-full h-full bg-gray-300 rounded-full transition-colors duration-200"></div>
+                                        <div id="dynamic-ball-dot" class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow-sm"></div>
+                                    </div>
+                                </div>
+                                <!-- NEW: Help Button with Enhanced Icon -->
+                                <div class="border-t border-[--border-light] pt-2">
+                                     <button onclick="navigateTo('help')" class="w-full text-left text-xs font-bold text-[#8B7E66] hover:text-[#5D5443] flex items-center gap-2">
+                                        <!-- UPDATED ICON (Book) -->
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                                        Help & Guide
+                                     </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Timer Component - Clean Look -->
+                        <div id="time-ui" onclick="addBonusTime()" class="hidden flex flex-col items-center justify-center gap-1 cursor-pointer hover:scale-110 transition-transform">
+                            <div id="clock-icon-wrapper">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B7E66" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            </div>
+                            <span id="timer-display" class="font-bold text-xs text-[#8B7E66]">00</span>
+                        </div>
+                        
+                        <!-- Dark Mode Component - Clean Look -->
+                        <div id="dark-ui" onclick="toggleDarkness()" class="hidden flex flex-col items-center justify-center cursor-pointer hover:scale-110 transition-transform">
+                            <svg id="moon-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B7E66" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                        </div>
+                        
+                        <!-- Guardian/Enemy Mode Component - Clean Look -->
+                        <div id="enemy-ui" onclick="pacifyEnemies()" class="hidden flex flex-col items-center justify-center cursor-pointer hover:scale-110 transition-transform">
+                            <!-- Alert Monster -->
+                            <svg id="monster-alert" class="hidden" width="24" height="24" viewBox="0 0 24 24" fill="#ef4444">
+                                <path d="M12 2C7 2 3 6 3 11v8l3-3 3 3 3-3 3 3 3-3 3 3v-8c0-5-4-9-9-9z"/>
+                                <rect x="7" y="8" width="4" height="4" fill="white"/>
+                                <rect x="9" y="9" width="2" height="2" fill="black"/>
+                                <rect x="13" y="8" width="4" height="4" fill="white"/>
+                                <rect x="15" y="9" width="2" height="2" fill="black"/>
+                            </svg>
+                            <!-- Calm Monster -->
+                            <svg id="monster-calm" class="" width="24" height="24" viewBox="0 0 24 24" fill="#8B7E66">
+                                <path d="M12 2C7 2 3 6 3 11v8l3-3 3 3 3-3 3 3 3-3 3 3v-8c0-5-4-9-9-9z"/>
+                                <rect x="6" y="8" width="4" height="4" fill="white"/>
+                                <rect x="7" y="9" width="2" height="2" fill="black"/>
+                                <rect x="14" y="8" width="4" height="4" fill="white"/>
+                                <rect x="15" y="9" width="2" height="2" fill="black"/>
+                            </svg>
+                        </div>
+                        
+                        <!-- Ghost Mode Component - Clean Look -->
+                        <div id="ghost-ui" onclick="revealGhosts()" class="hidden flex flex-col items-center justify-center cursor-pointer hover:scale-110 transition-transform">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="#8B7E66" stroke="#8B7E66" stroke-width="2" stroke-linejoin="round">
+                                <path d="M9 22l1-1.5L11.5 22l1.5-1.5L14.5 22l1.5-1.5 1-1.5V10a8 8 0 1 0-16 0v9l1 1.5 1.5 1.5 1.5-1.5 1 1.5z"/>
+                                <path stroke="white" stroke-width="0" fill="white" d="M8 10h2v2H8zM14 10h2v2h-2z"/>
+                            </svg>
+                        </div>
+
+                         <!-- Zone Mode Component - UPDATED LAYOUT for Timer Side-by-Side on Mobile -->
+                         <div id="zone-ui" onclick="triggerZoneShield()" class="hidden flex flex-row md:flex-col items-center justify-center cursor-pointer transition-transform hover:scale-110 gap-2 md:gap-0">
+                             <div class="flex flex-col items-center">
+                                <svg id="zone-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B7E66" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                </svg>
+                                <span id="zone-counter" class="font-bold text-[10px] text-[#8B7E66] mt-1 leading-none">0/0</span>
+                             </div>
+                             <!-- NEW: Mini Timer directly in the side bar -->
+                             <span id="zone-mini-timer" class="hidden text-[#ef4444] font-bold text-xs md:mt-1 animate-pulse"></span>
+                        </div>
+                    </div>
+
+                    <div id="game-canvas-container" class="bg-white rounded-2xl w-full aspect-square flex items-center justify-center overflow-hidden relative shadow-sm border border-[--border-light]">
+                        <canvas id="maze-canvas"></canvas>
+                        <!-- Pause Overlay -->
+                        <div id="pause-overlay" class="hidden absolute inset-0 z-40 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
+                            <h2 class="text-4xl font-bold text-[#8B7E66] uppercase tracking-widest mb-4">Paused</h2>
+                            <button onclick="togglePause()" class="btn-ui btn-primary py-3 px-8 rounded-xl font-bold text-lg shadow-lg">
+                                Resume
+                            </button>
+                        </div>
+                        <!-- Time Out Overlay -->
+                        <div id="timeout-msg" class="hidden absolute inset-0 z-50 bg-white/95 flex flex-col items-center justify-center timeout-overlay">
+                            <h2 class="text-4xl font-bold text-red-500 uppercase tracking-tighter">Time Out</h2>
+                            <p class="text-sm font-bold text-[#8B7E66] mt-2">Restarting...</p>
+                        </div>
+                         <!-- Zone Warning Overlay (Replaced Text with Big Timer) - NOW UNUSED/REMOVED FUNCTIONALLY -->
+                         <!-- Keeping structure but it will remain HIDDEN to satisfy request not to block view -->
+                         <div id="zone-msg" class="hidden absolute inset-0 z-30 pointer-events-none flex flex-col items-center justify-center">
+                            <!-- Content Removed as per request to move timer to sidebar -->
+                        </div>
+                        <!-- Zone Cleared Overlay -->
+                        <div id="zone-clear-msg" class="hidden absolute inset-0 z-30 pointer-events-none flex flex-col items-center justify-center">
+                            <h2 class="text-3xl md:text-4xl font-bold text-[#22c55e] uppercase tracking-tight shadow-sm" style="text-shadow: 2px 2px 0px white;">Wave Survived!</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="mt-4 text-[10px] text-[#8B7E66]/60 font-bold uppercase tracking-widest">Hold arrow keys or slide anywhere to move</p>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Maze: The Path Finder
+         * 
+         * This application is a comprehensive maze game featuring multiple 
+         * game modes, difficulty settings, and special abilities.
+         * 
+         * Key Features:
+         * - Randomized Maze Generation using Prim's Algorithm
+         * - Pathfinding using BFS for hints and enemy AI
+         * - Multiple Game Modes: Normal, Time, Dark, Enemy, Ghost, Zone
+         * - Special Abilities per mode with usage limits
+         * - Key-based currency system for hints
+         */
+
+        // Sound Manager
+        const SoundManager = {
+            ctx: null,
+            lastHurryTime: 0,
+            isMuted: false,
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            },
+            isEmergency() {
+                // Check if timer is in hurry mode
+                let isTimerHurry = false;
+                if (config.difficulty === 'easy' && timeLeft <= 3) isTimerHurry = true;
+                else if (config.difficulty === 'medium' && timeLeft <= 10) isTimerHurry = true;
+                else if (config.difficulty === 'hard' && timeLeft <= 15) isTimerHurry = true;
+                
+                if (isTimerHurry && timeLeft > 0) return true;
+
+                // Check if any enemy is chasing
+                if (enemies.some(e => e.state === 'chasing')) return true;
+
+                // Check if any ghost is chasing
+                if (ghosts.some(g => g.state === 'chasing')) return true;
+
+                return false;
+            },
+            play(type) {
+                if (this.isMuted) return;
+                this.init();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                
+                const now = this.ctx.currentTime;
+
+                if (type === 'hurry') {
+                    const nowMs = Date.now();
+                    if (nowMs - this.lastHurryTime < 400) return;
+                    this.lastHurryTime = nowMs;
+                }
+                
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                
+                switch(type) {
+                    case 'move':
+                        const emergency = this.isEmergency();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(emergency ? 200 : 300, now);
+                        osc.frequency.exponentialRampToValueAtTime(emergency ? 100 : 150, now + 0.08);
+                        gain.gain.setValueAtTime(emergency ? 0.05 : 0.15, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                        osc.start(now);
+                        osc.stop(now + 0.08);
+                        break;
+                    case 'click':
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(1000, now);
+                        osc.frequency.exponentialRampToValueAtTime(600, now + 0.05);
+                        gain.gain.setValueAtTime(0.05, now); // Softer click
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                        osc.start(now);
+                        osc.stop(now + 0.05);
+                        break;
+                    case 'tick':
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(800, now);
+                        gain.gain.setValueAtTime(0.05, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                        osc.start(now);
+                        osc.stop(now + 0.05);
+                        break;
+                    case 'hurry':
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(100, now);
+                        osc.frequency.exponentialRampToValueAtTime(60, now + 0.2);
+                        gain.gain.setValueAtTime(0.08, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                        osc.start(now);
+                        osc.stop(now + 0.2);
+                        break;
+                    case 'flood':
+                        const intensity = arguments[1] !== undefined ? arguments[1] : 0.5; // 0 to 1
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(50 + (intensity * 100), now); // Higher pitch as it progresses
+                        osc.frequency.linearRampToValueAtTime(40 + (intensity * 80), now + 0.2);
+                        gain.gain.setValueAtTime(0.05 + (intensity * 0.15), now); // Louder as it progresses
+                        gain.gain.linearRampToValueAtTime(0.001, now + 0.2);
+                        osc.start(now);
+                        osc.stop(now + 0.2);
+                        break;
+                    case 'ability':
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(200, now);
+                        osc.frequency.exponentialRampToValueAtTime(800, now + 0.3);
+                        gain.gain.setValueAtTime(0.1, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                        osc.start(now);
+                        osc.stop(now + 0.3);
+                        break;
+                    case 'win':
+                        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                        notes.forEach((freq, i) => {
+                            const o = this.ctx.createOscillator();
+                            const g = this.ctx.createGain();
+                            o.type = 'sine';
+                            o.connect(g);
+                            g.connect(this.ctx.destination);
+                            o.frequency.setValueAtTime(freq, now + i * 0.1);
+                            g.gain.setValueAtTime(0.1, now + i * 0.1);
+                            g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.3);
+                            o.start(now + i * 0.1);
+                            o.stop(now + i * 0.1 + 0.3);
+                        });
+                        break;
+                    case 'death':
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(100, now);
+                        osc.frequency.linearRampToValueAtTime(20, now + 0.5);
+                        gain.gain.setValueAtTime(0.1, now);
+                        gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+                        osc.start(now);
+                        osc.stop(now + 0.5);
+                        break;
+                }
+            }
+        };
+
+        // Game State
+        let config = { difficulty: 'easy', shape: 'square', mode: 'normal', autoMove: true, dynamicBall: true, currentLevel: 1, isCustom: false };
+        let isTutorialActive = false;
+        
+        // Seeded Random Implementation
+        let currentRandom = Math.random;
+        function seededRandom(seed) {
+            let m = 0x80000000;
+            let a = 1103515245;
+            let c = 12345;
+            let state = seed;
+            return function() {
+                state = (a * state + c) % m;
+                return state / (m - 1);
+            };
+        }
+
+        const LEVEL_CONFIGS = [
+            { diff: 'easy', mode: 'normal' },   // 1
+            { diff: 'medium', mode: 'normal' }, // 2
+            { diff: 'easy', mode: 'time' },     // 3
+            { diff: 'medium', mode: 'time' },   // 4
+            { diff: 'easy', mode: 'dark' },     // 5
+            { diff: 'medium', mode: 'dark' },   // 6
+            { diff: 'medium', mode: 'normal' }, // 7
+            { diff: 'medium', mode: 'enemy' },  // 8
+            { diff: 'hard', mode: 'normal' },   // 9
+            { diff: 'hard', mode: 'dark' },     // 10
+            { diff: 'medium', mode: 'ghost' },  // 11
+            { diff: 'hard', mode: 'normal' },   // 12
+            { diff: 'hard', mode: 'ghost' },    // 13
+            { diff: 'hard', mode: 'enemy' },    // 14
+            { diff: 'hard', mode: 'time' },     // 15
+            { diff: 'medium', mode: 'zone' },   // 16
+            { diff: 'hard', mode: 'zone' },     // 17
+            { diff: 'medium', mode: 'dark' },   // 18
+            { diff: 'medium', mode: 'ghost' },  // 19
+            { diff: 'medium', mode: 'enemy' },  // 20
+            { diff: 'medium', mode: 'enemy' },  // 21
+            { diff: 'hard', mode: 'dark' }      // 22
+        ];
+
+        // Fill 23-50 with hard difficulty and random non-normal modes
+        const extraModes = ['time', 'dark', 'enemy', 'ghost', 'zone'];
+        for (let i = 23; i <= 50; i++) {
+            LEVEL_CONFIGS.push({ diff: 'hard', mode: extraModes[(i - 23) % extraModes.length] });
+        }
+
+        let maze = [];
+        let player = { x: 1, y: 1 };
+        let goal = { x: 0, y: 0 };
+        let enemies = []; // Store active enemies
+        let ghosts = []; // Store active ghosts
+        let enemyInterval = null; // Store enemy movement loop
+        let ghostInterval = null; // Store ghost movement loop
+        let gridWidth = 35, gridHeight = 35;
+        let guidePoints = []; // Stores glowing points
+        let darknessSuspended = false; // State for moon click
+        let darknessTimeout = null;
+        let isPaused = false;
+        
+        // NEW: Zone Mode State (Progress-Based)
+        let zone = {
+            state: 'idle', // idle, warning, active
+            safePos: null, 
+            safeBounds: null,
+            interval: null,
+            warningTimer: null,
+            countdownTimer: null,
+            countdownValue: 0,
+            shrinkRadius: 0, // Inverted: Radius of the SAFE circle shrinking
+            finalRadius: 2.5, // 5x5 box approx
+            growthRate: 0.1, 
+            speed: 50,
+            triggers: [], // Array of progress percentages (0.25, 0.5, etc.)
+            triggeredCount: 0,
+            currentWave: 0
+        };
+
+        // NEW: Distance Map for Progress Tracking
+        let distanceMap = [];
+        let maxPathDistance = 0;
+
+        // NEW: Rotation State
+        let currentRotation = 0;
+
+        // Currency State
+        let totalKeys = parseInt(localStorage.getItem('maze_keys')) || 0+990000;
+
+        // Ability Usage State
+        let abilityUsage = {
+            time: 0,
+            dark: 0,
+            enemy: 0,
+            ghost: 0,
+            zone: 0
+        };
+
+        // New Feature States
+        let enemiesFrozen = false; // Now acts as "Harmless"
+        let ghostsRevealed = false;
+        
+        // Movement state
+        let currentDirection = null; // {dx, dy}
+        let pendingDirection = null; // {dx, dy} Buffered turn (Corner Buffering)
+        let moveInterval = null;
+        const MOVE_SPEED = 100; // ms per step
+
+        // Input state map for multiple keys
+        const activeKeys = new Set();
+        const keyMap = {
+            'arrowup': {dx: 0, dy: -1}, 'w': {dx: 0, dy: -1},
+            'arrowdown': {dx: 0, dy: 1}, 's': {dx: 0, dy: 1},
+            'arrowleft': {dx: -1, dy: 0}, 'a': {dx: -1, dy: 0},
+            'arrowright': {dx: 1, dy: 0}, 'd': {dx: 1, dy: 0}
+        };
+
+        // Hint State
+        let hintPath = []; // For Next Step or Flash
+        let hintTimer = null;
+
+        // Timer State
+        let gameTimer = null;
+        let timeLeft = 0;
+
+        const canvas = document.getElementById('maze-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Touch handling state
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const SWIPE_THRESHOLD = 15;
+
+        // NEW: Utils
+        function getAbilityMax() {
+            return { easy: 1, medium: 2, hard: 3 }[config.difficulty];
+        }
+
+        // NEW: Rotation Helper
+        function getRotatedInput(dx, dy) {
+            // currentRotation is 0, 90, 180, 270
+            // Map Screen Vector (visual) to Grid Vector (logic)
+            if (currentRotation === 0) return {dx, dy};
+            if (currentRotation === 90) return {dx: dy, dy: -dx};
+            if (currentRotation === 180) return {dx: -dx, dy: -dy};
+            if (currentRotation === 270) return {dx: -dy, dy: dx};
+            return {dx, dy};
+        }
+
+        // NEW: UI Update for Abilities
+        function updateAbilityUI(type, elementId) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            const max = getAbilityMax();
+            const used = abilityUsage[type];
+            
+            if (used >= max) {
+                el.classList.add('ability-disabled');
+            } else {
+                el.classList.remove('ability-disabled');
+            }
+        }
+
+        // --- CURRENCY FUNCTIONS ---
+        function updateKeyDisplay() {
+            const homeKeyCount = document.getElementById('home-key-count');
+            if (homeKeyCount) homeKeyCount.innerText = totalKeys;
+            document.getElementById('game-key-count').innerText = totalKeys;
+        }
+
+        function spendKeys(amount, onSuccess) {
+            if (totalKeys >= amount) {
+                totalKeys -= amount;
+                localStorage.setItem('maze_keys', totalKeys);
+                updateKeyDisplay();
+                // Visual feedback for spending
+                const display = document.getElementById('game-key-count');
+                display.classList.add('coin-anim');
+                setTimeout(() => display.classList.remove('coin-anim'), 300);
+                onSuccess();
+            } else {
+                // Visual feedback for error
+                const display = document.getElementById('game-key-count');
+                display.parentElement.classList.add('shake-error', 'border-red-400');
+                setTimeout(() => {
+                    display.parentElement.classList.remove('shake-error', 'border-red-400');
+                }, 300);
+            }
+        }
+
+        // Initialize display
+        updateKeyDisplay();
+        renderLevels();
+        navigateTo('home');
+
+        function playNow() {
+            config.isCustom = false;
+            const maxCleared = parseInt(localStorage.getItem('maze_max_cleared')) || 0;
+            const lastLevel = parseInt(localStorage.getItem('maze_last_level')) || 1;
+            const levelToStart = Math.min(lastLevel, maxCleared + 1);
+            startLevel(levelToStart);
+        }
+
+        function startCustomGame() {
+            config.isCustom = true;
+            navigateTo('game');
+        }
+
+        /**
+         * handleHeaderNavigation:
+         * Decides where to take the user when they click the level/mode label in the game header.
+         * If it's a custom game, it goes back to the custom configuration screen.
+         * If it's a level game, it goes to the levels selection screen.
+         */
+        function handleHeaderNavigation() {
+            if (config.isCustom) {
+                navigateTo('custom');
+            } else {
+                navigateTo('levels');
+            }
+        }
+
+        function renderLevels() {
+            const container = document.getElementById('levels-container');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            const maxCleared = parseInt(localStorage.getItem('maze_max_cleared')) || 0;
+            const unlockedLevel = maxCleared + 1;
+
+            for (let i = 1; i <= 50; i++) {
+                const btn = document.createElement('div');
+                btn.className = 'level-btn';
+                if (i > unlockedLevel) {
+                    btn.classList.add('locked');
+                    btn.innerHTML = `<span>${i}</span><span class="text-[10px] absolute bottom-1 right-1">🔒</span>`;
+                } else {
+                    btn.innerText = i;
+                    btn.onclick = () => startLevel(i);
+                }
+                container.appendChild(btn);
+            }
+        }
+
+        function startLevel(levelNum) {
+            const maxCleared = parseInt(localStorage.getItem('maze_max_cleared')) || 0;
+            if (levelNum > maxCleared + 1) return;
+
+            config.isCustom = false;
+            config.currentLevel = levelNum;
+            const levelConfig = LEVEL_CONFIGS[levelNum - 1];
+            config.difficulty = levelConfig.diff;
+            config.mode = levelConfig.mode;
+            localStorage.setItem('maze_last_level', levelNum);
+            navigateTo('game');
+        }
+
+        function navigateTo(pageId) {
+            SoundManager.play('click');
+            const pages = ['home', 'game', 'custom', 'help', 'levels'];
+            pages.forEach(p => {
+                const el = document.getElementById('page-' + p);
+                if(el) el.classList.add('hidden');
+            });
+            document.getElementById('page-' + pageId).classList.remove('hidden');
+            
+            const maxCleared = parseInt(localStorage.getItem('maze_max_cleared')) || 0;
+
+            if (pageId === 'home') {
+                const customBtn = document.getElementById('btn-custom-level');
+                if (maxCleared === 0) {
+                    customBtn.classList.add('locked');
+                    customBtn.innerHTML = 'Custom Level <span class="ml-2">🔒</span>';
+                } else {
+                    customBtn.classList.remove('locked');
+                    customBtn.innerHTML = 'Custom Level';
+                }
+            }
+
+            if (pageId === 'custom') {
+                updateCustomLocks(maxCleared);
+                const savedDiff = localStorage.getItem('maze_custom_difficulty') || 'easy';
+                const savedMode = localStorage.getItem('maze_custom_mode') || 'normal';
+                
+                // Ensure saved options are unlocked, else default to easy/normal
+                const thresholds = {
+                    difficulty: { easy: 1, medium: 2, hard: 9 },
+                    mode: { normal: 1, time: 3, dark: 5, enemy: 8, ghost: 11, zone: 16 }
+                };
+                
+                const finalDiff = (maxCleared + 1 >= thresholds.difficulty[savedDiff]) ? savedDiff : 'easy';
+                const finalMode = (maxCleared + 1 >= thresholds.mode[savedMode]) ? savedMode : 'normal';
+                
+                selectOption('difficulty', finalDiff);
+                selectOption('mode', finalMode);
+            }
+
+            // Highlight current level in levels screen
+            if (pageId === 'levels') {
+                renderLevels(); // Refresh levels list
+                const btns = document.querySelectorAll('.level-btn');
+                btns.forEach((btn, idx) => {
+                    if (idx + 1 === config.currentLevel) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                });
+            }
+
+            // Clear movement
+            stopMoving();
+            activeKeys.clear();
+            stopTimer();
+            isPaused = false;
+            document.getElementById('pause-overlay').classList.add('hidden');
+            
+            if(enemyInterval) clearInterval(enemyInterval);
+            if(ghostInterval) clearInterval(ghostInterval);
+            if(zone.interval) clearInterval(zone.interval);
+            if(zone.warningTimer) clearTimeout(zone.warningTimer);
+            if(zone.countdownTimer) clearInterval(zone.countdownTimer);
+
+            // Hide hint menu when leaving page
+            const hintMenu = document.getElementById('hint-menu');
+            if (hintMenu) hintMenu.classList.add('hidden');
+            hintPath = [];
+            if (hintTimer) clearTimeout(hintTimer);
+            
+            // Hide settings menu
+            document.getElementById('settings-menu').classList.add('hidden');
+
+            // Hide timeout UI
+            document.getElementById('timeout-msg').classList.add('hidden');
+             // Hide zone UI
+            document.getElementById('zone-msg').classList.add('hidden');
+            document.getElementById('zone-clear-msg').classList.add('hidden');
+            document.getElementById('zone-mini-timer').classList.add('hidden');
+
+            if(pageId === 'custom') {
+                const savedDiff = localStorage.getItem('maze_custom_difficulty') || 'easy';
+                const savedMode = localStorage.getItem('maze_custom_mode') || 'normal';
+                selectOption('difficulty', savedDiff);
+                selectOption('mode', savedMode);
+            }
+
+            if(pageId === 'game') {
+                initGame();
+            }
+        }
+
+        /**
+         * updateCustomLocks:
+         * Updates the visual state of custom options based on level progress.
+         */
+        function updateCustomLocks(maxCleared) {
+            const thresholds = {
+                difficulty: { easy: 1, medium: 2, hard: 9 },
+                mode: { normal: 1, time: 3, dark: 5, enemy: 8, ghost: 11, zone: 16 }
+            };
+
+            for (let diff in thresholds.difficulty) {
+                const el = document.getElementById('diff-' + diff);
+                if (el) {
+                    if (maxCleared + 1 < thresholds.difficulty[diff]) {
+                        el.classList.add('locked');
+                        if (!el.querySelector('.lock-badge')) {
+                            const badge = document.createElement('div');
+                            badge.className = 'lock-badge absolute top-1 right-1 text-[10px]';
+                            badge.innerText = '🔒';
+                            el.appendChild(badge);
+                        }
+                    } else {
+                        el.classList.remove('locked');
+                        const badge = el.querySelector('.lock-badge');
+                        if (badge) badge.remove();
+                    }
+                }
+            }
+
+            for (let mode in thresholds.mode) {
+                const el = document.getElementById('mode-' + mode);
+                if (el) {
+                    if (maxCleared + 1 < thresholds.mode[mode]) {
+                        el.classList.add('locked');
+                        if (!el.querySelector('.lock-badge')) {
+                            const badge = document.createElement('div');
+                            badge.className = 'lock-badge absolute top-1 right-1 text-[10px]';
+                            badge.innerText = '🔒';
+                            el.appendChild(badge);
+                        }
+                    } else {
+                        el.classList.remove('locked');
+                        const badge = el.querySelector('.lock-badge');
+                        if (badge) badge.remove();
+                    }
+                }
+            }
+        }
+
+        // Tutorial State
+        let tutorialQueue = [];
+        let currentTutorialIndex = -1;
+
+        function showTutorial(steps) {
+            tutorialQueue = steps;
+            currentTutorialIndex = 0;
+            isTutorialActive = true;
+            displayTutorialStep();
+        }
+
+        function displayTutorialStep() {
+            if (currentTutorialIndex < 0 || currentTutorialIndex >= tutorialQueue.length) {
+                document.getElementById('tutorial-overlay').classList.add('hidden');
+                isTutorialActive = false;
+                return;
+            }
+
+            const step = tutorialQueue[currentTutorialIndex];
+            const overlay = document.getElementById('tutorial-overlay');
+            const box = document.getElementById('tutorial-box');
+            const text = document.getElementById('tutorial-text');
+            const pointer = document.getElementById('tutorial-pointer');
+
+            overlay.classList.remove('hidden');
+            text.innerText = step.text;
+
+            // Calculate position
+            const container = document.getElementById('game-canvas-container');
+            const rect = container.getBoundingClientRect();
+            const drawCellSize = rect.width / gridWidth;
+
+            let targetX, targetY, targetHeight = 0;
+            if (step.target === 'player' || step.target === 'goal' || step.target === 'enemy' || step.target === 'guide') {
+                let lx, ly;
+                if (step.target === 'player') { lx = player.x; ly = player.y; }
+                else if (step.target === 'goal') { lx = goal.x; ly = goal.y; }
+                else if (step.target === 'guide') {
+                    const pt = guidePoints[step.index || 0];
+                    if (!pt) return nextTutorial();
+                    lx = pt.x; ly = pt.y;
+                }
+                else {
+                    const e = enemies[step.index || 0];
+                    if (!e) return nextTutorial();
+                    lx = e.x; ly = e.y;
+                }
+                
+                // Account for rotation
+                let vx = lx, vy = ly;
+                if (currentRotation === 90) {
+                    vx = gridHeight - 1 - ly;
+                    vy = lx;
+                } else if (currentRotation === 180) {
+                    vx = gridWidth - 1 - lx;
+                    vy = gridHeight - 1 - ly;
+                } else if (currentRotation === 270) {
+                    vx = ly;
+                    vy = gridWidth - 1 - lx;
+                }
+                
+                targetX = vx * drawCellSize + drawCellSize / 2 + rect.left;
+                targetY = vy * drawCellSize + drawCellSize / 2 + rect.top;
+                targetHeight = drawCellSize;
+            } else if (step.target === 'ability') {
+                const abilityBtn = document.getElementById(step.id);
+                if (!abilityBtn) return nextTutorial();
+                const btnRect = abilityBtn.getBoundingClientRect();
+                targetX = btnRect.left + btnRect.width / 2;
+                targetY = btnRect.top;
+                targetHeight = btnRect.height;
+            }
+
+            // Position the box dynamically to avoid hiding the target
+            const boxWidth = 180;
+            const boxHeight = box.offsetHeight || 100;
+            let top = targetY - boxHeight - 20;
+            let pointerTop = '100%';
+            let pointerRotate = 'rotate(45deg)';
+
+            // If too close to top, show below target
+            if (top < 20) {
+                top = targetY + targetHeight + 20;
+                pointerTop = '0%';
+                pointerRotate = 'rotate(-135deg)';
+            }
+
+            box.style.left = `${Math.max(10, Math.min(window.innerWidth - boxWidth - 10, targetX - boxWidth / 2))}px`;
+            box.style.top = `${top}px`;
+
+            pointer.style.left = 'calc(50% - 8px)';
+            pointer.style.top = pointerTop;
+            pointer.style.transform = `translateY(-50%) ${pointerRotate}`;
+        }
+
+        function nextTutorial() {
+            SoundManager.play('click');
+            currentTutorialIndex++;
+            if (currentTutorialIndex >= tutorialQueue.length) {
+                document.getElementById('tutorial-overlay').classList.add('hidden');
+                isTutorialActive = false;
+            } else {
+                displayTutorialStep();
+            }
+        }
+
+        function togglePause() {
+            SoundManager.play('click');
+            isPaused = !isPaused;
+            const overlay = document.getElementById('pause-overlay');
+            const btn = document.getElementById('btn-pause');
+            
+            if (isPaused) {
+                overlay.classList.remove('hidden');
+                // Show Play Icon
+                btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+            } else {
+                overlay.classList.add('hidden');
+                // Show Pause Icon
+                btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+            }
+        }
+
+        function toggleMute() {
+            SoundManager.isMuted = !SoundManager.isMuted;
+            const icon = document.getElementById('mute-icon');
+            if (SoundManager.isMuted) {
+                // Muted icon with an X or slash
+                icon.innerHTML = '<path d="M11 5 6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>';
+            } else {
+                // Normal speaker icon
+                icon.innerHTML = '<path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>';
+            }
+            SoundManager.play('click');
+        }
+
+        function toggleHintMenu(event) {
+            event.stopPropagation();
+            SoundManager.play('click');
+            const menu = document.getElementById('hint-menu');
+            
+            // Disable Flash Hint in Dark Mode
+            const flashBtn = document.getElementById('btn-hint-flash');
+            if (config.mode === 'dark') {
+                flashBtn.classList.add('hidden');
+            } else {
+                flashBtn.classList.remove('hidden');
+            }
+
+            menu.classList.toggle('hidden');
+            document.getElementById('settings-menu').classList.add('hidden');
+        }
+
+        function toggleSettings(event) {
+            event.stopPropagation();
+            const menu = document.getElementById('settings-menu');
+            const isOpening = menu.classList.contains('hidden');
+            if (isOpening) updateSettingsUI();
+            menu.classList.toggle('hidden');
+            document.getElementById('hint-menu').classList.add('hidden');
+        }
+
+        function updateSettingsUI() {
+            const autoBg = document.getElementById('auto-move-bg');
+            const autoDot = document.getElementById('auto-move-dot');
+            const dynBg = document.getElementById('dynamic-ball-bg');
+            const dynDot = document.getElementById('dynamic-ball-dot');
+
+            if (config.autoMove) {
+                autoBg.classList.remove('bg-gray-300');
+                autoBg.classList.add('bg-[#8B7E66]');
+                autoDot.classList.add('translate-x-4');
+            } else {
+                autoBg.classList.add('bg-gray-300');
+                autoBg.classList.remove('bg-[#8B7E66]');
+                autoDot.classList.remove('translate-x-4');
+            }
+
+            if (config.dynamicBall) {
+                dynBg.classList.remove('bg-gray-300');
+                dynBg.classList.add('bg-[#8B7E66]');
+                dynDot.classList.add('translate-x-4');
+            } else {
+                dynBg.classList.add('bg-gray-300');
+                dynBg.classList.remove('bg-[#8B7E66]');
+                dynDot.classList.remove('translate-x-4');
+            }
+        }
+
+        function toggleAutoMove(event) {
+            event.stopPropagation();
+            SoundManager.play('click');
+            config.autoMove = !config.autoMove;
+            
+            const bg = document.getElementById('auto-move-bg');
+            const dot = document.getElementById('auto-move-dot');
+            
+            if (config.autoMove) {
+                bg.classList.remove('bg-gray-300');
+                bg.classList.add('bg-[#8B7E66]');
+                dot.classList.add('translate-x-4');
+            } else {
+                bg.classList.add('bg-gray-300');
+                bg.classList.remove('bg-[#8B7E66]');
+                dot.classList.remove('translate-x-4');
+            }
+        }
+
+        function toggleDynamicBall(event) {
+            event.stopPropagation();
+            SoundManager.play('click');
+            config.dynamicBall = !config.dynamicBall;
+            
+            const bg = document.getElementById('dynamic-ball-bg');
+            const dot = document.getElementById('dynamic-ball-dot');
+            
+            if (config.dynamicBall) {
+                bg.classList.remove('bg-gray-300');
+                bg.classList.add('bg-[#8B7E66]');
+                dot.classList.add('translate-x-4');
+            } else {
+                bg.classList.add('bg-gray-300');
+                bg.classList.remove('bg-[#8B7E66]');
+                dot.classList.remove('translate-x-4');
+            }
+        }
+
+        // --- SPECIAL ABILITY HANDLERS ---
+
+        function addBonusTime() {
+             if (config.mode !== 'time') return;
+             if (isPaused) return;
+             
+             // Check limit
+             const max = getAbilityMax();
+             if (abilityUsage.time >= max) return;
+
+             SoundManager.play('ability');
+             // Increment use and update UI
+             abilityUsage.time++;
+             updateAbilityUI('time', 'time-ui');
+             
+             // Effect (UPDATED: 2, 4, 6 seconds)
+             const bonus = config.difficulty === 'easy' ? 2 : config.difficulty === 'medium' ? 4 : 6;
+             timeLeft += bonus;
+             updateTimerDisplay();
+             // Visual feedback animation
+             const timerUI = document.getElementById('time-ui');
+             timerUI.classList.add('scale-110');
+             const textEl = document.getElementById('timer-display');
+             textEl.style.color = '#22c55e'; // Green
+             
+             setTimeout(() => {
+                 timerUI.classList.remove('scale-110');
+                 textEl.style.color = ''; // Reset
+             }, 300);
+        }
+
+        function pacifyEnemies() {
+             if (config.mode !== 'enemy' || enemiesFrozen) return;
+             if (isPaused) return;
+
+             // Check limit
+             const max = getAbilityMax();
+             if (abilityUsage.enemy >= max) return;
+
+             SoundManager.play('ability');
+             // Increment use and update UI
+             abilityUsage.enemy++;
+             updateAbilityUI('enemy', 'enemy-ui');
+             
+             enemiesFrozen = true;
+             // Update visual
+             const monsterUI = document.getElementById('enemy-ui');
+             monsterUI.classList.add('opacity-40');
+             
+             // Redraw immediately to show update
+             draw();
+
+             setTimeout(() => {
+                 enemiesFrozen = false;
+                 monsterUI.classList.remove('opacity-40');
+                 draw();
+             }, 5000);
+        }
+
+        function revealGhosts() {
+             if (config.mode !== 'ghost' || ghostsRevealed) return;
+             if (isPaused) return;
+             
+             // Check limit
+             const max = getAbilityMax();
+             if (abilityUsage.ghost >= max) return;
+
+             SoundManager.play('ability');
+             // Increment use and update UI
+             abilityUsage.ghost++;
+             updateAbilityUI('ghost', 'ghost-ui');
+
+             ghostsRevealed = true;
+             const ghostUI = document.getElementById('ghost-ui');
+             ghostUI.classList.add('opacity-40');
+             
+             draw(); 
+
+             setTimeout(() => {
+                 ghostsRevealed = false;
+                 ghostUI.classList.remove('opacity-40');
+                 draw();
+             }, 5000);
+        }
+
+        function toggleDarkness() {
+            if (config.mode !== 'dark' || darknessSuspended) return;
+            if (isPaused) return;
+
+            // Check limit
+            const max = getAbilityMax();
+            if (abilityUsage.dark >= max) return;
+
+            SoundManager.play('ability');
+            // Increment use and update UI
+            abilityUsage.dark++;
+            updateAbilityUI('dark', 'dark-ui');
+            
+            darknessSuspended = true;
+            
+            // Change Icon to Light (outline)
+            const moonIcon = document.getElementById('moon-icon');
+            moonIcon.setAttribute('fill', 'none');
+            moonIcon.setAttribute('stroke', '#8B7E66');
+
+            draw();
+
+            // Revert after 3 seconds (UPDATED)
+            clearTimeout(darknessTimeout);
+            darknessTimeout = setTimeout(() => {
+                darknessSuspended = false;
+                // Change Icon to Dark (filled)
+                moonIcon.setAttribute('fill', '#8B7E66');
+                moonIcon.setAttribute('stroke', '#8B7E66');
+                draw();
+            }, 3000);
+        }
+
+        function triggerZoneShield() {
+             if (config.mode !== 'zone' || isPaused) return;
+             if (zone.state === 'idle') return; // Only effective during a wave
+
+             // Check limit
+             const max = getAbilityMax();
+             if (abilityUsage.zone >= max) return;
+
+             SoundManager.play('ability');
+             // Increment use and update UI
+             abilityUsage.zone++;
+             updateAbilityUI('zone', 'zone-ui');
+
+             // Stop the wave immediately
+             if(zone.interval) clearInterval(zone.interval);
+             if(zone.warningTimer) clearTimeout(zone.warningTimer);
+             if(zone.countdownTimer) clearInterval(zone.countdownTimer);
+
+             zone.state = 'idle';
+             zone.shrinkRadius = 0;
+             zone.safePos = null;
+             zone.safeBounds = null;
+             
+             // Hide Messages
+             document.getElementById('zone-msg').classList.add('hidden');
+             document.getElementById('zone-mini-timer').classList.add('hidden');
+             updateZoneUI();
+             
+             // Show Feedback
+             const msg = document.getElementById('zone-clear-msg');
+             msg.classList.remove('hidden');
+             
+             draw();
+             
+             setTimeout(() => {
+                 msg.classList.add('hidden');
+             }, 2000);
+        }
+
+        function findPath(start, target) {
+            const queue = [[start]];
+            const visited = new Set();
+            visited.add(`${start.x},${start.y}`);
+
+            while (queue.length > 0) {
+                const path = queue.shift();
+                const pos = path[path.length - 1];
+
+                if (pos.x === target.x && pos.y === target.y) return path;
+
+                const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+                for (const [dx, dy] of dirs) {
+                    const nx = pos.x + dx, ny = pos.y + dy;
+                    if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight && 
+                        maze[ny][nx] === 0 && !visited.has(`${nx},${ny}`)) {
+                        visited.add(`${nx},${ny}`);
+                        queue.push([...path, {x: nx, y: ny}]);
+                    }
+                }
+            }
+            return [];
+        }
+
+        function selectHint(type) {
+            SoundManager.play('click');
+            if (isPaused) return;
+            const fullPath = findPath(player, goal);
+            if (!fullPath.length) return;
+
+            const costs = { 'Next Step': 10, 'Flash': 20, 'Teleport': 40 };
+            const cost = costs[type];
+
+            spendKeys(cost, () => {
+                if (type === 'Next Step') {
+                    hintPath = fullPath.slice(0, 6);
+                    draw();
+                    if (hintTimer) clearTimeout(hintTimer);
+                    hintTimer = setTimeout(() => { hintPath = []; draw(); }, 2000);
+                } else if (type === 'Flash') {
+                    hintPath = fullPath;
+                    draw();
+                    if (hintTimer) clearTimeout(hintTimer);
+                    hintTimer = setTimeout(() => { hintPath = []; draw(); }, 1000);
+                } else if (type === 'Teleport') {
+                    const targetIdx = Math.floor(fullPath.length * 0.6);
+                    player = { ...fullPath[targetIdx] };
+                    hintPath = [];
+                    draw();
+                    checkWin();
+                }
+                document.getElementById('hint-menu').classList.add('hidden');
+            });
+        }
+
+        window.addEventListener('click', () => {
+            const hintMenu = document.getElementById('hint-menu');
+            if (hintMenu) hintMenu.classList.add('hidden');
+            const settingsMenu = document.getElementById('settings-menu');
+            if (settingsMenu) settingsMenu.classList.add('hidden');
+        });
+
+        function selectOption(category, value) {
+            SoundManager.play('click');
+            if (category === 'shape' && value !== 'square') return;
+            if (category === 'mode' && !['normal', 'time', 'dark', 'enemy', 'ghost', 'zone'].includes(value)) return;
+
+            const maxCleared = parseInt(localStorage.getItem('maze_max_cleared')) || 0;
+            const thresholds = {
+                difficulty: { easy: 1, medium: 2, hard: 9 },
+                mode: { normal: 1, time: 3, dark: 5, enemy: 8, ghost: 11, zone: 16 }
+            };
+
+            if (category === 'difficulty' || category === 'mode') {
+                if (maxCleared + 1 < thresholds[category][value]) return;
+            }
+
+            config[category] = value;
+            if (category === 'difficulty') localStorage.setItem('maze_custom_difficulty', value);
+            if (category === 'mode') localStorage.setItem('maze_custom_mode', value);
+
+            const categoryMap = {
+                'difficulty': ['easy', 'medium', 'hard'],
+                'shape': ['square', 'triangular', 'honeycomb'],
+                'mode': ['normal', 'dark', 'enemy', 'time', 'ghost', 'zone']
+            };
+            const prefix = category === 'difficulty' ? 'diff-' : `${category}-`;
+            
+            categoryMap[category].forEach(opt => {
+                const el = document.getElementById(prefix + opt);
+                if(el) {
+                    el.classList.remove('selected');
+                    if(category === 'mode') {
+                        const r = el.querySelector('div:last-child');
+                        r.classList.replace('border-[#8B7E66]', 'border-[#D4CEAF]');
+                        r.innerHTML = '';
+                    }
+                }
+            });
+
+            const sel = document.getElementById(prefix + value);
+            sel.classList.add('selected');
+            if(category === 'mode') {
+                const r = sel.querySelector('div:last-child');
+                r.classList.replace('border-[#D4CEAF]', 'border-[#8B7E66]');
+                r.innerHTML = '<div class="w-2.5 h-2.5 bg-[#8B7E66] rounded-full"></div>';
+            }
+        }
+
+        /**
+         * selectRandomOptions:
+         * Automatically picks a random difficulty and a random game mode,
+         * then triggers the game initialization by navigating to the game page.
+         */
+        function selectRandomOptions() {
+            SoundManager.play('click');
+            config.isCustom = true;
+            const maxCleared = parseInt(localStorage.getItem('maze_max_cleared')) || 0;
+            const thresholds = {
+                difficulty: { easy: 1, medium: 2, hard: 9 },
+                mode: { normal: 1, time: 3, dark: 5, enemy: 8, ghost: 11, zone: 16 }
+            };
+
+            // Filter unlocked options
+            const unlockedDiffs = ['easy', 'medium', 'hard'].filter(d => maxCleared + 1 >= thresholds.difficulty[d]);
+            const unlockedModes = ['normal', 'time', 'dark', 'enemy', 'ghost', 'zone'].filter(m => maxCleared + 1 >= thresholds.mode[m]);
+            
+            const randomDiff = unlockedDiffs[Math.floor(Math.random() * unlockedDiffs.length)];
+            const randomMode = unlockedModes[Math.floor(Math.random() * unlockedModes.length)];
+            
+            selectOption('difficulty', randomDiff);
+            selectOption('mode', randomMode);
+            
+            navigateTo('game');
+        }
+
+        function generateMaze(w, h) {
+            const m = Array(h).fill().map(() => Array(w).fill(1));
+            const walls = [];
+
+            m[1][1] = 0;
+            
+            function addFrontier(x, y) {
+                const dirs = [[0, -2], [0, 2], [-2, 0], [2, 0]];
+                dirs.forEach(([dx, dy]) => {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (nx > 0 && nx < w - 1 && ny > 0 && ny < h - 1 && m[ny][nx] === 1) {
+                        walls.push({x: nx, y: ny});
+                    }
+                });
+            }
+            addFrontier(1, 1);
+
+            while (walls.length > 0) {
+                const randIndex = Math.floor(currentRandom() * walls.length);
+                let {x, y} = walls[randIndex];
+                walls.splice(randIndex, 1);
+
+                if (m[y][x] === 1) {
+                    const neighbors = [];
+                    const dirs = [[0, -2, 0, -1], [0, 2, 0, 1], [-2, 0, -1, 0], [2, 0, 1, 0]];
+                    
+                    dirs.forEach(([dx, dy, px, py]) => {
+                        const nx = x + dx, ny = y + dy;
+                        if (nx >= 0 && nx < w && ny >= 0 && ny < h && m[ny][nx] === 0) {
+                            neighbors.push({nx, ny, px: x + px, py: y + py, dx, dy});
+                        }
+                    });
+
+                    if (neighbors.length > 0) {
+                        const choice = neighbors[Math.floor(currentRandom() * neighbors.length)];
+                        m[y][x] = 0;
+                        m[choice.py][choice.px] = 0;
+                        
+                        let tx = x, ty = y;
+                        let lastDx = -(choice.dx);
+                        let lastDy = -(choice.dy);
+                        let continueProb = 0.85;
+                        
+                        while (currentRandom() < continueProb) {
+                            const nextDirs = [[0, -2, 0, -1], [0, 2, 0, 1], [-2, 0, -1, 0], [2, 0, 1, 0]]
+                                .sort(() => currentRandom() - 0.5);
+
+                            let moved = false;
+                            for (let i = 0; i < nextDirs.length; i++) {
+                                const [dx, dy, px, py] = nextDirs[i];
+                                if (dx !== lastDx && dy !== lastDy && currentRandom() > 0.4) continue; 
+
+                                const nx = tx + dx, ny = ty + dy;
+                                if (nx > 0 && nx < w - 1 && ny > 0 && ny < h - 1 && m[ny][nx] === 1) {
+                                    m[ny][nx] = 0;
+                                    m[ty + py][tx + px] = 0;
+                                    tx = nx; ty = ny;
+                                    lastDx = dx; lastDy = dy;
+                                    addFrontier(tx, ty);
+                                    moved = true;
+                                    break;
+                                }
+                            }
+                            if (!moved) break;
+                            continueProb *= 0.95;
+                        }
+                        addFrontier(x, y);
+                    }
+                }
+            }
+            goal = { x: w - 2, y: h - 2 };
+            m[goal.y][goal.x] = 0;
+            return m;
+        }
+
+        // NEW: Calculate Distance Map for Progress
+        function computeDistanceMap(start) {
+            const dist = Array(gridHeight).fill().map(() => Array(gridWidth).fill(-1));
+            const q = [{x: start.x, y: start.y, d: 0}];
+            dist[start.y][start.x] = 0;
+            let max = 0;
+
+            while(q.length > 0) {
+                const curr = q.shift();
+                if(curr.d > max) max = curr.d;
+
+                const dirs = [[0,1], [0,-1], [1,0], [-1,0]];
+                for(let [dx, dy] of dirs) {
+                    const nx = curr.x + dx, ny = curr.y + dy;
+                    if(nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight && maze[ny][nx] === 0) {
+                        if(dist[ny][nx] === -1) {
+                            dist[ny][nx] = curr.d + 1;
+                            q.push({x: nx, y: ny, d: curr.d + 1});
+                        }
+                    }
+                }
+            }
+            return { map: dist, max: max };
+        }
+
+        function initGame() {
+            SoundManager.play('click');
+            // Set Seeded Random for fixed levels
+            if (config.isCustom) {
+                currentRandom = Math.random;
+            } else {
+                currentRandom = seededRandom(config.currentLevel * 1000);
+            }
+
+            const sizes = { easy: 35, medium: 55, hard: 75 };
+            gridWidth = gridHeight = sizes[config.difficulty];
+            maze = generateMaze(gridWidth, gridHeight);
+            player = { x: 1, y: 1 };
+            hintPath = [];
+            pendingDirection = null;
+            currentDirection = null;
+            activeKeys.clear();
+            enemies = []; // clear old enemies
+            ghosts = []; // clear old ghosts
+            isPaused = false;
+            document.getElementById('pause-overlay').classList.add('hidden');
+            if(enemyInterval) clearInterval(enemyInterval);
+            if(ghostInterval) clearInterval(ghostInterval);
+            
+            // Randomly rotate the canvas
+            const rot = [0, 90, 180, 270][Math.floor(currentRandom() * 4)];
+            currentRotation = rot;
+            // No Transition, apply immediately
+            canvas.style.transform = `rotate(${rot}deg)`;
+            
+            // Update Level Display
+            const levelNumDisplay = document.getElementById('level-number-display');
+            const levelLabel = document.getElementById('level-label');
+            if (levelNumDisplay && levelLabel) {
+                if (config.isCustom) {
+                    levelNumDisplay.innerText = "";
+                    levelLabel.innerText = config.mode.charAt(0).toUpperCase() + config.mode.slice(1) + " Mode";
+                } else {
+                    levelNumDisplay.innerText = config.currentLevel;
+                    levelLabel.innerText = "Levels";
+                }
+            }
+
+            // Trigger Tutorials
+            setTimeout(() => {
+                const bonus = { easy: 2, medium: 4, hard: 6 }[config.difficulty];
+                const info = "E: 1 use, +2s\nM: 2 uses, +4s\nH: 3 uses, +6s\nUses reduce rewards.";
+                const infoShort = "E: 1 use\nM: 2 uses\nH: 3 uses\nUses reduce rewards.";
+
+                const hasSeenIntro = localStorage.getItem('maze_tutorial_intro');
+                if (!hasSeenIntro && config.currentLevel === 1 && !config.isCustom) {
+                    showTutorial([
+                        { target: 'player', text: "You (Ball). Move to start." },
+                        { target: 'goal', text: "Goal (Flag). Reach it to win." }
+                    ]);
+                    localStorage.setItem('maze_tutorial_intro', 'true');
+                }
+
+                const hasSeenTime = localStorage.getItem('maze_tutorial_time');
+                if (!hasSeenTime && config.mode === 'time' && !config.isCustom) {
+                    showTutorial([
+                        { id: 'time-ui', target: 'ability', text: `Time Mode! Use for extra time.\n${info}` }
+                    ]);
+                    localStorage.setItem('maze_tutorial_time', 'true');
+                }
+
+                const hasSeenDark = localStorage.getItem('maze_tutorial_dark');
+                if (!hasSeenDark && config.mode === 'dark' && !config.isCustom) {
+                    showTutorial([
+                        { id: 'dark-ui', target: 'ability', text: `Dark Mode! Use for light.\n${infoShort}` }
+                    ]);
+                    localStorage.setItem('maze_tutorial_dark', 'true');
+                }
+
+                const hasSeenEnemy = localStorage.getItem('maze_tutorial_enemy');
+                if (!hasSeenEnemy && config.mode === 'enemy' && !config.isCustom) {
+                    showTutorial([
+                        { id: 'enemy-ui', target: 'ability', text: `Guardians! Use to freeze them.\n${infoShort}` }
+                    ]);
+                    localStorage.setItem('maze_tutorial_enemy', 'true');
+                }
+
+                const hasSeenEnemyTypes = localStorage.getItem('maze_tutorial_enemy_types');
+                if (!hasSeenEnemyTypes && config.mode === 'enemy' && config.difficulty === 'medium' && !config.isCustom) {
+                    showTutorial([
+                        { target: 'enemy', index: 0, text: "Blue: Normal guardian." },
+                        { target: 'enemy', index: 1, text: "Yellow: Fast & long chase." },
+                        { target: 'enemy', index: 2, text: "Purple: Persistent hunter." }
+                    ]);
+                    localStorage.setItem('maze_tutorial_enemy_types', 'true');
+                }
+
+                const hasSeenGhost = localStorage.getItem('maze_tutorial_ghost');
+                if (!hasSeenGhost && config.mode === 'ghost' && !config.isCustom) {
+                    showTutorial([
+                        { id: 'ghost-ui', target: 'ability', text: `Ghosts! Use to reveal them.\n${infoShort}` }
+                    ]);
+                    localStorage.setItem('maze_tutorial_ghost', 'true');
+                }
+
+                const hasSeenZone = localStorage.getItem('maze_tutorial_zone');
+                if (!hasSeenZone && config.mode === 'zone' && !config.isCustom) {
+                    showTutorial([
+                        { id: 'zone-ui', target: 'ability', text: `Flood! Reach Green Zone.\n${infoShort}` }
+                    ]);
+                    localStorage.setItem('maze_tutorial_zone', 'true');
+                }
+            }, 500);
+
+            // Reset Dark Mode State
+            darknessSuspended = false;
+            clearTimeout(darknessTimeout);
+            const moonIcon = document.getElementById('moon-icon');
+            if(moonIcon) {
+                // Initial Dark State is Filled
+                moonIcon.setAttribute('fill', '#8B7E66');
+                moonIcon.setAttribute('stroke', '#8B7E66');
+            }
+            
+            // Reset Special States
+            enemiesFrozen = false;
+            ghostsRevealed = false;
+            document.getElementById('enemy-ui').classList.remove('opacity-40');
+            document.getElementById('ghost-ui').classList.remove('opacity-40');
+            
+            // Reset Zone State
+            zone.state = 'idle';
+            zone.currentWave = 0;
+            zone.shrinkRadius = 0;
+            zone.safePos = null;
+            zone.triggeredCount = 0;
+            if(zone.interval) clearInterval(zone.interval);
+            if(zone.warningTimer) clearTimeout(zone.warningTimer);
+            if(zone.countdownTimer) clearInterval(zone.countdownTimer);
+            
+            document.getElementById('zone-msg').classList.add('hidden');
+            document.getElementById('zone-clear-msg').classList.add('hidden');
+            document.getElementById('zone-mini-timer').classList.add('hidden'); // Reset mini timer
+
+            // Reset usage
+            abilityUsage = { time: 0, dark: 0, enemy: 0, ghost: 0, zone: 0 };
+
+            // Calculate Guide Points for Medium/Hard
+            guidePoints = [];
+            if (config.difficulty === 'medium' || config.difficulty === 'hard') {
+                const solution = findPath(player, goal);
+                if (solution.length > 0) {
+                    if (config.difficulty === 'medium') {
+                        guidePoints.push(solution[Math.floor(solution.length * 0.5)]);
+                    } else if (config.difficulty === 'hard') {
+                        guidePoints.push(solution[Math.floor(solution.length * 0.33)]);
+                        guidePoints.push(solution[Math.floor(solution.length * 0.66)]);
+                    }
+                }
+            }
+            
+            const labelEl = document.getElementById('level-label');
+            const sideInfo = document.getElementById('side-info-container');
+            const timeUI = document.getElementById('time-ui');
+            const darkUI = document.getElementById('dark-ui');
+            const enemyUI = document.getElementById('enemy-ui');
+            const ghostUI = document.getElementById('ghost-ui');
+            const zoneUI = document.getElementById('zone-ui');
+            const settingsUI = document.getElementById('settings-ui');
+
+            // Always show side container in game, manage children visibility
+            sideInfo.classList.remove('hidden');
+            settingsUI.parentElement.classList.remove('hidden'); // Always show settings wrapper
+            
+            timeUI.classList.add('hidden');
+            darkUI.classList.add('hidden');
+            enemyUI.classList.add('hidden');
+            ghostUI.classList.add('hidden');
+            zoneUI.classList.add('hidden');
+
+            document.getElementById('timeout-msg').classList.add('hidden');
+            stopTimer();
+
+            // Progress Tracking for Zone Mode
+            if (config.mode === 'zone') {
+                const distData = computeDistanceMap(player);
+                distanceMap = distData.map;
+                // Heuristic max: Manually check goal distance or use max found
+                maxPathDistance = distanceMap[goal.y][goal.x]; 
+                if(maxPathDistance === -1) maxPathDistance = distData.max; // Fallback
+
+                // Define triggers based on difficulty
+                if (config.difficulty === 'easy') {
+                    zone.triggers = [0.5]; // 1 wave at 50%
+                } else if (config.difficulty === 'medium') {
+                    zone.triggers = [0.25, 0.5, 0.75]; // 3 waves
+                } else {
+                    zone.triggers = [0.15, 0.35, 0.5, 0.65, 0.85]; // 5 waves
+                }
+                zone.wavesMax = zone.triggers.length;
+            }
+
+            if (config.mode === 'time') {
+                timeUI.classList.remove('hidden');
+                updateAbilityUI('time', 'time-ui');
+                startTimer();
+            } else if (config.mode === 'dark') {
+                darkUI.classList.remove('hidden');
+                updateAbilityUI('dark', 'dark-ui');
+            } else if (config.mode === 'enemy') {
+                enemyUI.classList.remove('hidden');
+                updateAbilityUI('enemy', 'enemy-ui');
+                spawnEnemies();
+            } else if (config.mode === 'ghost') {
+                ghostUI.classList.remove('hidden');
+                updateAbilityUI('ghost', 'ghost-ui');
+                spawnGhosts();
+            } else if (config.mode === 'zone') {
+                zoneUI.classList.remove('hidden');
+                updateAbilityUI('zone', 'zone-ui');
+                // Growth rate per 50ms tick (Grid Units)
+                zone.growthRate = { easy: 0.1, medium: 0.15, hard: 0.2 }[config.difficulty];
+                updateZoneUI();
+                // Removed timer-based startZoneWave call
+            }
+
+            draw();
+            updateKeyDisplay();
+        }
+
+        // --- ZONE MODE LOGIC (UPDATED) ---
+
+        function updateZoneUI() {
+             const cnt = document.getElementById('zone-counter');
+             const icon = document.getElementById('zone-icon');
+             if(cnt) cnt.innerText = `${zone.triggeredCount}/${zone.wavesMax}`; // Show active/completed
+             
+             if(zone.state === 'active') icon.parentElement.classList.add('zone-active-icon');
+             else icon.parentElement.classList.remove('zone-active-icon');
+        }
+
+        function startZoneWave() {
+            if (zone.state !== 'idle') return;
+
+            // 1. Determine Safe Position based on Current Player Position
+            let valid = false;
+            let sx, sy;
+            let attempts = 0;
+            const minD = 10;
+            const maxD = 20;
+
+            while(!valid && attempts < 100) {
+                attempts++;
+                // Pick random spot in bounds
+                sx = Math.floor(Math.random() * (gridWidth - 6)) + 3; 
+                sy = Math.floor(Math.random() * (gridHeight - 6)) + 3;
+                
+                if(maze[sy][sx] === 0) {
+                    const dist2 = Math.abs(sx - player.x) + Math.abs(sy - player.y); // Corrected logic
+                    if(dist2 >= minD && dist2 <= maxD) {
+                        // Ensure reachable
+                        const p = findPath(player, {x:sx, y:sy});
+                        if(p.length > 0) valid = true;
+                    }
+                }
+            }
+            if(!valid) { sx = player.x; sy = player.y; } // Fallback (shouldn't happen often)
+
+            zone.safePos = {x: sx, y: sy};
+            zone.safeBounds = {
+                minX: sx - 2, maxX: sx + 2,
+                minY: sy - 2, maxY: sy + 2
+            };
+
+            // 2. Warning Phase
+            zone.state = 'warning';
+            zone.triggeredCount++;
+            updateZoneUI();
+
+            // REPLACEMENT FOR OVERLAY: SHOW MINI TIMER
+            // const msg = document.getElementById('zone-msg'); // No longer using Overlay
+            // msg.classList.remove('hidden'); // Removed logic
+            const timerEl = document.getElementById('zone-mini-timer');
+            timerEl.classList.remove('hidden');
+            
+            // Start Countdown (3 seconds)
+            zone.countdownValue = 3;
+            timerEl.innerText = `${zone.countdownValue}s`;
+            // document.getElementById('zone-overlay-timer').innerText = zone.countdownValue; // Removed logic
+            
+            draw();
+
+            if (zone.countdownTimer) clearInterval(zone.countdownTimer);
+            zone.countdownTimer = setInterval(() => {
+                if(isPaused || isTutorialActive) return;
+                zone.countdownValue--;
+                if(zone.countdownValue > 0) {
+                    timerEl.innerText = `${zone.countdownValue}s`;
+                }
+                if(zone.countdownValue <= 0) {
+                    clearInterval(zone.countdownTimer);
+                }
+            }, 1000);
+
+            // 3. Active Phase (Storm Converges)
+            zone.warningTimer = setTimeout(() => {
+                // msg.classList.add('hidden'); // Removed logic
+                timerEl.innerText = "RUN";
+                
+                zone.state = 'active';
+                
+                // FIXED: Calculate Initial Radius to ensure it covers the farthest corner
+                const corners = [{x:0, y:0}, {x:gridWidth, y:0}, {x:0, y:gridHeight}, {x:gridWidth, y:gridHeight}];
+                let maxDist = 0;
+                corners.forEach(c => {
+                    const distX = Math.abs(c.x - sx);
+                    const distY = Math.abs(c.y - sy);
+                    const dist = Math.max(distX, distY); // Square radius needed to cover this corner
+                    if (dist > maxDist) maxDist = dist;
+                });
+                
+                zone.shrinkRadius = maxDist + 2; // Add a buffer
+                
+                zone.interval = setInterval(expandDeadZone, zone.speed);
+            }, 3000); 
+        }
+
+        function expandDeadZone() {
+            if (isPaused || isTutorialActive) return;
+            if (zone.state !== 'active') return;
+
+            // Shrink the safe bubble (Converge from corners)
+            zone.shrinkRadius -= zone.growthRate;
+
+            // Dynamic Flood Sound
+            const maxRadius = gridWidth; 
+            const intensity = Math.max(0, Math.min(1, 1 - (zone.shrinkRadius / maxRadius)));
+            SoundManager.play('flood', intensity);
+
+            // Check if Storm hits player (SQUARE LOGIC)
+            // Player must be INSIDE the safe square
+            // Center is zone.safePos
+            const dx = Math.abs(player.x - zone.safePos.x);
+            const dy = Math.abs(player.y - zone.safePos.y);
+            
+            // If distance in X or Y is greater than radius, we are outside
+            if (dx > zone.shrinkRadius || dy > zone.shrinkRadius) {
+                onZoneDeath();
+                return;
+            }
+
+            // Check Wave Completion
+            // If the storm has closed in to the size of the safe zone boundary
+            if (zone.shrinkRadius <= zone.finalRadius) {
+                completeZoneWave();
+            }
+
+            draw();
+        }
+
+        function completeZoneWave() {
+             clearInterval(zone.interval);
+             zone.state = 'idle';
+             zone.shrinkRadius = 0; // Reset
+             zone.safePos = null;
+             zone.safeBounds = null;
+             // zone.currentWave updated via triggeredCount
+             updateZoneUI();
+             
+             // Hide Mini Timer
+             document.getElementById('zone-mini-timer').classList.add('hidden');
+             
+             draw();
+             
+             // Show Wave Cleared / Delay Message (Only on Survival)
+             const msg = document.getElementById('zone-clear-msg');
+             msg.classList.remove('hidden');
+             
+             setTimeout(() => {
+                 msg.classList.add('hidden');
+             }, 2000);
+        }
+
+        function onZoneDeath() {
+             SoundManager.play('death');
+             isPaused = true;
+             stopMoving();
+             clearInterval(zone.interval);
+             document.getElementById('zone-mini-timer').classList.add('hidden'); // Hide timer
+             
+             document.getElementById('timeout-msg').classList.remove('hidden');
+             document.querySelector('#timeout-msg h2').innerText = "CONSUMED";
+             document.querySelector('#timeout-msg h2').classList.replace('text-red-500', 'text-gray-800');
+             document.querySelector('#timeout-msg p').innerText = "The storm caught you.";
+             
+             setTimeout(() => {
+                document.querySelector('#timeout-msg h2').innerText = "TIME OUT";
+                document.querySelector('#timeout-msg h2').classList.replace('text-gray-800', 'text-red-500');
+                initGame();
+             }, 2000);
+        }
+
+        function startTimer() {
+            stopTimer();
+            const limits = { easy: 10, medium: 40, hard: 80 };
+            timeLeft = limits[config.difficulty];
+            updateTimerDisplay();
+
+            gameTimer = setInterval(() => {
+                if (isPaused || isTutorialActive) return;
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    onTimeOut();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (gameTimer) {
+                clearInterval(gameTimer);
+                gameTimer = null;
+            }
+        }
+
+        function updateTimerDisplay() {
+            const display = document.getElementById('timer-display');
+            const icon = document.getElementById('clock-icon-wrapper');
+            if (!display || !icon) return;
+            
+            display.innerText = timeLeft < 10 ? `0${timeLeft}` : timeLeft;
+
+            // Hurry Thresholds
+            let isHurry = false;
+            if (config.difficulty === 'easy' && timeLeft <= 3) isHurry = true;
+            else if (config.difficulty === 'medium' && timeLeft <= 10) isHurry = true;
+            else if (config.difficulty === 'hard' && timeLeft <= 15) isHurry = true;
+
+            if (isHurry && timeLeft > 0) {
+                SoundManager.play('tick');
+                display.classList.add('text-hurry');
+                icon.classList.add('hurry-vibrate');
+                icon.querySelector('svg').style.stroke = '#ef4444';
+            } else {
+                display.classList.remove('text-hurry');
+                icon.classList.remove('hurry-vibrate');
+                icon.querySelector('svg').style.stroke = '#8B7E66';
+            }
+        }
+
+        function onTimeOut() {
+            SoundManager.play('death');
+            isPaused = true;
+            stopTimer();
+            stopMoving();
+            document.getElementById('timeout-msg').classList.remove('hidden');
+            setTimeout(() => {
+                initGame();
+            }, 2000);
+        }
+
+        function draw() {
+            const container = document.getElementById('game-canvas-container');
+            if (!container) return;
+            const containerSize = container.clientWidth;
+            if (containerSize === 0) return; // Prevent 0-dimension errors
+
+            // FIX: Ensure maze is generated before drawing
+            if (!maze || maze.length === 0) return;
+
+            canvas.width = canvas.height = containerSize * window.devicePixelRatio;
+            canvas.style.width = canvas.style.height = containerSize + 'px';
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            const drawCellSize = containerSize / gridWidth;
+
+            ctx.clearRect(0, 0, containerSize, containerSize);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, containerSize, containerSize);
+
+            // Draw Dead Zone (Shrinking Inverted SQUARE) BEFORE walls
+            if (config.mode === 'zone' && zone.state === 'active') {
+                // We want to fill the whole screen RED, except the hole
+                ctx.save();
+                ctx.fillStyle = 'rgba(252, 165, 165, 0.6)'; // Red tint
+                ctx.beginPath();
+                // Outer box (Full Canvas)
+                ctx.rect(0, 0, containerSize, containerSize);
+                
+                // Inner Hole (Counter-Clockwise to create hole)
+                // Center is safePos
+                const cx = zone.safePos.x * drawCellSize + drawCellSize/2;
+                const cy = zone.safePos.y * drawCellSize + drawCellSize/2;
+                const r = zone.shrinkRadius * drawCellSize; // This is half-width
+                
+                // Draw Inner Square (Anti-Clockwise)
+                ctx.rect(cx + r, cy - r, -2*r, 2*r);
+                
+                ctx.fill();
+                
+                // Draw Border of Storm
+                ctx.beginPath();
+                ctx.rect(cx - r, cy - r, 2*r, 2*r);
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = Math.max(1, drawCellSize * 0.15); 
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            for(let y=0; y<gridHeight; y++) {
+                for(let x=0; x<gridWidth; x++) {
+                    if (maze[y][x] === 1) {
+                        if (x < gridWidth - 1 && maze[y][x+1] === 1) {
+                            ctx.beginPath();
+                            ctx.moveTo(x * drawCellSize + drawCellSize/2, y * drawCellSize + drawCellSize/2);
+                            ctx.lineTo((x+1) * drawCellSize + drawCellSize/2, y * drawCellSize + drawCellSize/2);
+                            ctx.stroke();
+                        }
+                        if (y < gridHeight - 1 && maze[y+1][x] === 1) {
+                            ctx.beginPath();
+                            ctx.moveTo(x * drawCellSize + drawCellSize/2, y * drawCellSize + drawCellSize/2);
+                            ctx.lineTo(x * drawCellSize + drawCellSize/2, (y+1) * drawCellSize + drawCellSize/2);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            if (hintPath.length > 1) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.strokeStyle = '#FCD34D';
+                ctx.lineWidth = drawCellSize * 0.15;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#FCD34D';
+                ctx.moveTo(hintPath[0].x * drawCellSize + drawCellSize/2, hintPath[0].y * drawCellSize + drawCellSize/2);
+                for (let i = 1; i < hintPath.length; i++) ctx.lineTo(hintPath[i].x * drawCellSize + drawCellSize/2, hintPath[i].y * drawCellSize + drawCellSize/2);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Draw Guide Points (Glowing Points) - Only in Dark Mode
+            if (config.mode === 'dark' && guidePoints.length > 0) {
+                guidePoints.forEach(pt => {
+                    ctx.save();
+                    ctx.fillStyle = '#06b6d4'; // Cyan
+                    ctx.shadowColor = '#06b6d4';
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    ctx.arc(pt.x * drawCellSize + drawCellSize/2, pt.y * drawCellSize + drawCellSize/2, drawCellSize * 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+            }
+
+            // Draw Safe Zone Box (Green Box 3x3)
+            // Visual indicator of target
+            if (config.mode === 'zone' && zone.safeBounds && zone.state !== 'idle') {
+                 const { minX, maxX, minY, maxY } = zone.safeBounds;
+                 const width = (maxX - minX + 1) * drawCellSize;
+                 const height = (maxY - minY + 1) * drawCellSize;
+                 
+                 ctx.fillStyle = '#22c55e'; // Green
+                 ctx.globalAlpha = 0.4;
+                 ctx.fillRect(minX * drawCellSize, minY * drawCellSize, width, height);
+                 ctx.globalAlpha = 1.0;
+                 // Border
+                 ctx.strokeStyle = '#15803d';
+                 ctx.lineWidth = 2;
+                 ctx.strokeRect(minX * drawCellSize, minY * drawCellSize, width, height);
+
+                 // Draw Countdown Text during warning - REMOVED AS REQUESTED, MOVED TO DOM
+            }
+
+            // Goal
+            ctx.strokeStyle = '#F87171';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(goal.x * drawCellSize + drawCellSize*0.1, goal.y * drawCellSize + drawCellSize*0.1, drawCellSize*0.8, drawCellSize*0.8);
+
+            // Player
+            ctx.fillStyle = '#F87171';
+            ctx.beginPath();
+            
+            // Dynamic Ball Sizing
+            let playerRadius = drawCellSize * 0.35;
+            if (config.dynamicBall && moveInterval) {
+                playerRadius = drawCellSize * 0.45;
+            }
+            
+            ctx.arc(player.x * drawCellSize + drawCellSize/2, player.y * drawCellSize + drawCellSize/2, playerRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw Enemies if mode is enemy
+            if (config.mode === 'enemy') {
+                drawEnemies(ctx, drawCellSize);
+            }
+
+            // Draw Ghosts if mode is ghost
+            if (config.mode === 'ghost') {
+                drawGhosts(ctx, drawCellSize);
+            }
+
+            // Dark Mode Masking
+            // Apply only if mode is dark AND darkness is not temporarily suspended
+            if (config.mode === 'dark' && !darknessSuspended) {
+                 // Create temp canvas to punch holes
+                 const maskCv = document.createElement('canvas');
+                 maskCv.width = canvas.width;
+                 maskCv.height = canvas.height;
+                 const mCtx = maskCv.getContext('2d');
+                 
+                 // Scale it to match main canvas logical coords
+                 mCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+                 // Draw darkness
+                 mCtx.fillStyle = '#1a1a1a';
+                 mCtx.fillRect(0, 0, containerSize, containerSize);
+
+                 // Punch holes
+                 mCtx.globalCompositeOperation = 'destination-out';
+                 
+                 // Player hole
+                 const pX = player.x * drawCellSize + drawCellSize/2;
+                 const pY = player.y * drawCellSize + drawCellSize/2;
+                 const pRad = drawCellSize * 5;
+                 const pGrad = mCtx.createRadialGradient(pX, pY, 0, pX, pY, pRad);
+                 pGrad.addColorStop(0, 'rgba(0,0,0,1)'); // Solid alpha removes darkness
+                 pGrad.addColorStop(1, 'rgba(0,0,0,0)'); // Transparent alpha keeps darkness
+                 mCtx.fillStyle = pGrad;
+                 mCtx.beginPath();
+                 mCtx.arc(pX, pY, pRad, 0, Math.PI * 2);
+                 mCtx.fill();
+
+                 // Goal hole (smaller visibility)
+                 const gX = goal.x * drawCellSize + drawCellSize/2;
+                 const gY = goal.y * drawCellSize + drawCellSize/2;
+                 const gRad = drawCellSize * 2.5; 
+                 const gGrad = mCtx.createRadialGradient(gX, gY, 0, gX, gY, gRad);
+                 gGrad.addColorStop(0, 'rgba(0,0,0,1)');
+                 gGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                 mCtx.fillStyle = gGrad;
+                 mCtx.beginPath();
+                 mCtx.arc(gX, gY, gRad, 0, Math.PI * 2);
+                 mCtx.fill();
+
+                 // Draw mask onto main canvas
+                 ctx.save();
+                 ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset to physical pixels for 1:1 overlay
+                 ctx.drawImage(maskCv, 0, 0);
+                 ctx.restore();
+            }
+        }
+
+        function startMoving(dx, dy) {
+            if (isPaused || isTutorialActive) return;
+            pendingDirection = { dx, dy };
+            if (!moveInterval) {
+                const step = () => {
+                    if (isPaused || isTutorialActive) return;
+                    if (pendingDirection) {
+                        const { dx: pdx, dy: pdy } = pendingDirection;
+                        const pnx = player.x + pdx;
+                        const pny = player.y + pdy;
+                        const canTurnNow = pnx >= 0 && pnx < gridWidth && pny >= 0 && pny < gridHeight && maze[pny][pnx] === 0;
+                        if (canTurnNow) {
+                            currentDirection = { dx: pdx, dy: pdy };
+                            pendingDirection = null; 
+                        }
+                    }
+                    if (!currentDirection) {
+                        if (!pendingDirection) stopMoving();
+                        return;
+                    }
+                    const nx = player.x + currentDirection.dx;
+                    const ny = player.y + currentDirection.dy;
+                    if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight && maze[ny][nx] === 0) {
+                        player.x = nx;
+                        player.y = ny;
+                        SoundManager.play('move');
+                        draw();
+                        checkWin();
+                        if (!currentDirection) return;
+                        
+                        // Check Dead Zone Collision (instantaneous check)
+                        if (config.mode === 'zone' && zone.state === 'active') {
+                             const dx = Math.abs(player.x - zone.safePos.x);
+                             const dy = Math.abs(player.y - zone.safePos.y);
+                             
+                             if (dx > zone.shrinkRadius || dy > zone.shrinkRadius) {
+                                 onZoneDeath();
+                                 return;
+                             }
+                        }
+
+                        // NEW: Check Zone Triggers (Progress Based)
+                        if (config.mode === 'zone' && zone.state === 'idle' && zone.triggeredCount < zone.triggers.length) {
+                            const currentDist = distanceMap[ny][nx];
+                            if (currentDist !== -1) {
+                                const progress = currentDist / maxPathDistance;
+                                const nextTrigger = zone.triggers[zone.triggeredCount];
+                                if (progress >= nextTrigger) {
+                                    startZoneWave();
+                                }
+                            }
+                        }
+
+                        // NEW: Level 6 Guide Point Tutorial Trigger
+                        if (config.currentLevel === 6 && !config.isCustom && !localStorage.getItem('maze_tutorial_guide')) {
+                            const nearPoint = guidePoints.some(pt => Math.abs(pt.x - player.x) <= 2 && Math.abs(pt.y - player.y) <= 2);
+                            if (nearPoint) {
+                                showTutorial([
+                                    { target: 'guide', index: 0, text: "Guiding Dots! This indicates that the path you traveled until this dot is correct." }
+                                ]);
+                                localStorage.setItem('maze_tutorial_guide', 'true');
+                            }
+                        }
+
+                        // --- IMPROVED AUTO MOVE LOGIC ---
+                        if (config.autoMove && !pendingDirection) {
+                            const exits = [];
+                            const dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]]; // U, D, L, R
+                            
+                            // Check all neighbors of the NEW tile
+                            dirs.forEach(([dx, dy]) => {
+                                const ex = player.x + dx;
+                                const ey = player.y + dy;
+                                if (ex >= 0 && ex < gridWidth && ey >= 0 && ey < gridHeight && maze[ey][ex] === 0) {
+                                    exits.push({dx, dy});
+                                }
+                            });
+
+                            // Calculate the "Back" direction (where we just came from)
+                            const backDx = -currentDirection.dx;
+                            const backDy = -currentDirection.dy;
+
+                            // Filter out the way back to see valid forward options
+                            const forwardExits = exits.filter(e => !(e.dx === backDx && e.dy === backDy));
+
+                            if (forwardExits.length === 1) {
+                                // Exactly one way forward (Corridor or Corner) -> Auto Move
+                                currentDirection = forwardExits[0];
+                            } else {
+                                // Intersection (>1 way) OR Dead End (0 ways) -> Stop
+                                stopMoving();
+                            }
+                        }
+                        // -----------------------
+
+                    } else {
+                        currentDirection = null;
+                        if (!pendingDirection) stopMoving();
+                    }
+                };
+                step(); 
+                moveInterval = setInterval(step, MOVE_SPEED);
+            }
+        }
+
+        function stopMoving() {
+            if (moveInterval) {
+                clearInterval(moveInterval);
+                moveInterval = null;
+            }
+            currentDirection = null;
+            pendingDirection = null;
+            // Redraw to reset ball size if dynamic ball is on
+            draw();
+        }
+
+        function checkWin() {
+            if (player.x === goal.x && player.y === goal.y) {
+                SoundManager.play('win');
+                stopMoving();
+                stopTimer();
+                if(enemyInterval) clearInterval(enemyInterval);
+                if(ghostInterval) clearInterval(ghostInterval);
+                if(zone.interval) clearInterval(zone.interval);
+                
+                // Calculate Reward
+                const diffReward = { easy: 1, medium: 2, hard: 3 };
+                const modeReward = { normal: 1, time: 2, dark: 3, enemy: 4, ghost: 5, zone: 6 };
+                let gained = (diffReward[config.difficulty] || 0) + (modeReward[config.mode] || 0);
+
+                // NEW: Deduct keys based on ability usage
+                const penalty = abilityUsage.time + abilityUsage.dark + abilityUsage.enemy + abilityUsage.ghost + abilityUsage.zone;
+                gained = Math.max(0, gained - penalty);
+                
+                totalKeys += gained;
+                localStorage.setItem('maze_keys', totalKeys);
+                updateKeyDisplay();
+                
+                setTimeout(() => {
+                    if (config.isCustom) {
+                        alert(`Maze Cleared! +${gained} Keys`);
+                        navigateTo('custom');
+                    } else {
+                        alert(`Level ${config.currentLevel} Cleared! +${gained} Keys`);
+                        
+                        // Update max cleared
+                        const maxCleared = parseInt(localStorage.getItem('maze_max_cleared')) || 0;
+                        if (config.currentLevel > maxCleared) {
+                            localStorage.setItem('maze_max_cleared', config.currentLevel);
+                        }
+
+                        if (config.currentLevel < 50) {
+                            startLevel(config.currentLevel + 1);
+                        } else {
+                            navigateTo('home');
+                        }
+                    }
+                }, 100);
+            }
+        }
+
+        // --- ENEMY LOGIC (Modified for Smart Gaze and Follow) ---
+        function hasLineOfSight(x0, y0, x1, y1) {
+            let dx = Math.abs(x1 - x0);
+            let dy = Math.abs(y1 - y0);
+            let sx = (x0 < x1) ? 1 : -1;
+            let sy = (y0 < y1) ? 1 : -1;
+            let err = dx - dy;
+
+            while(true) {
+                if (x0 === x1 && y0 === y1) break;
+                if (maze[y0][x0] === 1) return false; 
+
+                let e2 = 2 * err;
+                if (e2 > -dy) { err -= dy; x0 += sx; }
+                if (e2 < dx) { err += dx; y0 += sy; }
+                
+                if (maze[y0][x0] === 1) return false;
+            }
+            return true;
+        }
+
+        function spawnEnemies() {
+            enemies = [];
+            const counts = { 'easy': 2, 'medium': 5, 'hard': 8 };
+            const numEnemies = counts[config.difficulty];
+            
+            // Types of enemies to cycle through
+            const types = [
+                { type: 'blue', color: '#3b82f6', vision: 4, smartness: 0.4, speed: 130, chaseDuration: 3000 },
+                { type: 'yellow', color: '#eab308', vision: 6, smartness: 0.7, speed: 180, chaseDuration: 5000 },
+                { type: 'purple', color: '#a855f7', vision: 8, smartness: 0.9, speed: 220, chaseDuration: 8000 }
+            ];
+
+            for(let i=0; i<numEnemies; i++) {
+                let valid = false;
+                let ex, ey;
+                while(!valid) {
+                    ex = Math.floor(Math.random() * (gridWidth - 2)) + 1;
+                    ey = Math.floor(Math.random() * (gridHeight - 2)) + 1;
+                    if(maze[ey][ex] === 0) {
+                        const dist = Math.abs(ex - player.x) + Math.abs(ey - player.y);
+                        if(dist > 10) valid = true; 
+                    }
+                }
+                const prototype = types[i % 3]; 
+                enemies.push({
+                    x: ex, y: ey,
+                    ...prototype,
+                    state: 'wandering', // wandering, chasing, returning
+                    returnPos: null,    // where to return to
+                    lastMoveTime: 0,
+                    chaseEndTime: 0,
+                    lastDir: {dx: 0, dy: 0} 
+                });
+            }
+
+            if(enemyInterval) clearInterval(enemyInterval);
+            // Run loop fast to check individual speeds (50ms tick)
+            enemyInterval = setInterval(moveEnemies, 50); 
+        }
+
+        function moveEnemies() {
+            if (isPaused || isTutorialActive) return;
+            let playerHit = false;
+            let now = Date.now();
+            let needsDraw = false;
+            let isAnyChasing = false;
+
+            enemies.forEach(enemy => {
+                // Check speed cooldown
+                if (now - enemy.lastMoveTime < enemy.speed) return;
+                
+                // Keep moving even if harmless, but update lastMoveTime
+                enemy.lastMoveTime = now;
+                needsDraw = true;
+
+                // 1. Determine State Transition
+                const distToPlayer = Math.abs(enemy.x - player.x) + Math.abs(enemy.y - player.y);
+                const inRange = distToPlayer <= enemy.vision;
+                // If enemies are frozen (pacified), they lose vision and cannot chase
+                const visible = !enemiesFrozen && inRange && hasLineOfSight(enemy.x, enemy.y, player.x, player.y);
+
+                // If currently chasing but frozen, force stop chasing immediately
+                if (enemiesFrozen && enemy.state === 'chasing') {
+                     enemy.state = 'wandering';
+                     enemy.returnPos = null;
+                }
+
+                if (enemy.state === 'wandering') {
+                    if (visible) {
+                        enemy.state = 'chasing';
+                        enemy.returnPos = { x: enemy.x, y: enemy.y }; // Remember spot
+                        enemy.chaseEndTime = now + enemy.chaseDuration;
+                    }
+                } else if (enemy.state === 'chasing') {
+                    if (visible) {
+                        enemy.chaseEndTime = now + enemy.chaseDuration; // Extends chase
+                    }
+                    if (now > enemy.chaseEndTime) {
+                        enemy.state = 'returning';
+                    }
+                } else if (enemy.state === 'returning') {
+                    if (visible && distToPlayer < 2) {
+                        // Re-engage if player stumbles into them
+                        enemy.state = 'chasing';
+                        enemy.chaseEndTime = now + enemy.chaseDuration;
+                    }
+                }
+
+                // Global Flag for UI
+                if (enemy.state === 'chasing') isAnyChasing = true;
+
+                // 2. Execute Movement based on State
+                let nextMove = null;
+
+                if (enemy.state === 'chasing') {
+                     const pathToPlayer = findPath({x: enemy.x, y: enemy.y}, {x: player.x, y: player.y});
+                     if (pathToPlayer && pathToPlayer.length > 1) {
+                        nextMove = pathToPlayer[1];
+                        if (nextMove) {
+                            enemy.lastDir = { dx: nextMove.x - enemy.x, dy: nextMove.y - enemy.y };
+                        }
+                     }
+                } else if (enemy.state === 'returning') {
+                    if (enemy.returnPos) {
+                        if (enemy.x === enemy.returnPos.x && enemy.y === enemy.returnPos.y) {
+                            enemy.state = 'wandering';
+                            enemy.returnPos = null;
+                        } else {
+                            const pathToReturn = findPath({x: enemy.x, y: enemy.y}, enemy.returnPos);
+                             if (pathToReturn && pathToReturn.length > 1) {
+                                nextMove = pathToReturn[1];
+                                if (nextMove) {
+                                    enemy.lastDir = { dx: nextMove.x - enemy.x, dy: nextMove.y - enemy.y };
+                                }
+                             } else {
+                                 // Path blocked or error, just wander
+                                 enemy.state = 'wandering';
+                             }
+                        }
+                    } else {
+                        enemy.state = 'wandering';
+                    }
+                } 
+                
+                // Fallback / Wandering Logic
+                if (!nextMove && enemy.state === 'wandering') {
+                    const dirs = [[0,1], [0,-1], [1,0], [-1,0]];
+                    let validNeighbors = [];
+                    dirs.forEach(([dx, dy]) => {
+                        const nx = enemy.x + dx;
+                        const ny = enemy.y + dy;
+                        if(nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight && maze[ny][nx] === 0) {
+                            validNeighbors.push({x: nx, y: ny, dx: dx, dy: dy});
+                        }
+                    });
+
+                    if(validNeighbors.length > 0) {
+                        const forwardMoves = validNeighbors.filter(n => {
+                            if (!enemy.lastDir || (enemy.lastDir.dx === 0 && enemy.lastDir.dy === 0)) return true;
+                            return !(n.dx === -enemy.lastDir.dx && n.dy === -enemy.lastDir.dy);
+                        });
+
+                        if (forwardMoves.length > 0) {
+                            const straightMove = forwardMoves.find(n => enemy.lastDir && n.dx === enemy.lastDir.dx && n.dy === enemy.lastDir.dy);
+                            if (straightMove && Math.random() < 0.7) {
+                                nextMove = straightMove;
+                            } else {
+                                nextMove = forwardMoves[Math.floor(Math.random() * forwardMoves.length)];
+                            }
+                        } else {
+                            nextMove = validNeighbors[0];
+                        }
+                        if (nextMove) {
+                            enemy.lastDir = { dx: nextMove.dx, dy: nextMove.dy };
+                        }
+                    }
+                }
+
+                // Update position
+                if(nextMove) {
+                    enemy.x = nextMove.x;
+                    enemy.y = nextMove.y;
+                }
+
+                // Check collision (Only if not frozen/harmless)
+                if(!enemiesFrozen && enemy.x === player.x && enemy.y === player.y) {
+                    playerHit = true;
+                }
+            });
+
+            // Update Monster Icon (Replaced Eye)
+            const monsterAlert = document.getElementById('monster-alert');
+            const monsterCalm = document.getElementById('monster-calm');
+            const enemyUi = document.getElementById('enemy-ui');
+            if(isAnyChasing && !enemiesFrozen) {
+                SoundManager.play('hurry');
+                monsterAlert.classList.remove('hidden');
+                monsterCalm.classList.add('hidden');
+                enemyUi.classList.add('animate-pulse');
+            } else {
+                monsterAlert.classList.add('hidden');
+                monsterCalm.classList.remove('hidden');
+                enemyUi.classList.remove('animate-pulse');
+            }
+
+            if (playerHit) {
+                SoundManager.play('death');
+                isPaused = true;
+                stopMoving();
+                clearInterval(enemyInterval);
+                document.getElementById('timeout-msg').classList.remove('hidden');
+                document.querySelector('#timeout-msg h2').innerText = "CAUGHT!";
+                document.querySelector('#timeout-msg h2').classList.replace('text-red-500', 'text-purple-600');
+                document.querySelector('#timeout-msg p').innerText = "The guardians found you.";
+                
+                setTimeout(() => {
+                    document.querySelector('#timeout-msg h2').innerText = "TIME OUT";
+                    document.querySelector('#timeout-msg h2').classList.replace('text-purple-600', 'text-red-500');
+                    initGame();
+                }, 2000);
+            } else if (needsDraw) {
+                draw(); 
+            }
+        }
+
+        function drawEnemies(ctx, size) {
+            const now = Date.now();
+            enemies.forEach(e => {
+                const x = e.x * size + size/2;
+                const y = e.y * size + size/2;
+                const r = size * 0.4;
+                const isChasing = e.state === 'chasing';
+
+                // Draw Vision Field (Blocked by walls) - Hide if frozen for clarity? Or keep? Keep.
+                if (!enemiesFrozen) {
+                    ctx.save();
+                    ctx.fillStyle = e.color;
+                    ctx.globalAlpha = 0.1;
+                    
+                    // Simple BFS to find visible cells
+                    // Optimization: Limit to vision radius
+                    for(let dy = -e.vision; dy <= e.vision; dy++) {
+                        for(let dx = -e.vision; dx <= e.vision; dx++) {
+                            // Check Circle
+                            if(dx*dx + dy*dy <= e.vision*e.vision) {
+                                let tx = e.x + dx;
+                                let ty = e.y + dy;
+                                if(tx >= 0 && tx < gridWidth && ty >= 0 && ty < gridHeight) {
+                                    if(maze[ty][tx] === 0) { // Only draw on paths, logic implies walls block
+                                        if(hasLineOfSight(e.x, e.y, tx, ty)) {
+                                             ctx.fillRect(tx * size, ty * size, size, size);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    ctx.restore();
+                }
+
+                // Draw Glowing Effect if chasing
+                ctx.save();
+                if(isChasing && !enemiesFrozen) {
+                    ctx.shadowColor = e.color;
+                    ctx.shadowBlur = 15;
+                }
+
+                // --- SPRITE DRAWING WITH COUNTER-ROTATION ---
+                ctx.save();
+                // Translate to monster center
+                ctx.translate(x, y);
+                // Rotate oppositely to canvas rotation so monster stays upright relative to screen
+                ctx.rotate(-currentRotation * Math.PI / 180);
+                // Translate back to draw at 0,0 relative to monster center
+                ctx.translate(-x, -y);
+
+                // Draw Body
+                ctx.fillStyle = enemiesFrozen ? '#94a3b8' : e.color; // Grey out if frozen
+                ctx.beginPath();
+                // Top half circle
+                ctx.arc(x, y, r, Math.PI, 0); 
+                // Bottom wavy
+                ctx.lineTo(x + r, y + r);
+                ctx.lineTo(x + r/3, y + r*0.7);
+                ctx.lineTo(x - r/3, y + r);
+                ctx.lineTo(x - r, y + r*0.7);
+                ctx.lineTo(x - r, y);
+                ctx.fill();
+                
+                ctx.restore(); // Stop rotation/glow
+
+                // Draw Face Features (Also Counter-Rotated)
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(-currentRotation * Math.PI / 180);
+                ctx.translate(-x, -y);
+
+                if (e.type === 'blue') {
+                    // Cyclops: One big eye
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.arc(x, y - r*0.2, r*0.35, 0, Math.PI*2);
+                    ctx.fill();
+                    // Pupil
+                    ctx.fillStyle = enemiesFrozen ? '#64748b' : 'black';
+                    ctx.beginPath();
+                    ctx.arc(x, y - r*0.2, r*0.15, 0, Math.PI*2);
+                    ctx.fill();
+                } else if (e.type === 'yellow') {
+                    // Surprised
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath(); ctx.arc(x - r*0.3, y - r*0.3, r*0.25, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(x + r*0.3, y - r*0.3, r*0.25, 0, Math.PI*2); ctx.fill();
+                    
+                    ctx.fillStyle = enemiesFrozen ? '#64748b' : 'black';
+                    ctx.beginPath(); ctx.arc(x - r*0.4, y - r*0.3, r*0.1, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(x + r*0.2, y - r*0.3, r*0.1, 0, Math.PI*2); ctx.fill();
+
+                    // Mouth (O shape)
+                    ctx.beginPath();
+                    ctx.arc(x, y + r*0.3, r*0.15, 0, Math.PI*2);
+                    ctx.fill();
+                } else if (e.type === 'purple') {
+                    // Fanged
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath(); ctx.arc(x - r*0.3, y - r*0.3, r*0.25, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(x + r*0.3, y - r*0.3, r*0.25, 0, Math.PI*2); ctx.fill();
+                    
+                    ctx.fillStyle = enemiesFrozen ? '#64748b' : 'black';
+                    ctx.beginPath(); ctx.arc(x - r*0.2, y - r*0.3, r*0.1, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(x + r*0.4, y - r*0.3, r*0.1, 0, Math.PI*2); ctx.fill();
+
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(x, y + r*0.1, r*0.4, 0.2*Math.PI, 0.8*Math.PI);
+                    ctx.stroke();
+                    
+                    // Fangs
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.moveTo(x - r*0.2, y + r*0.45);
+                    ctx.lineTo(x - r*0.1, y + r*0.65);
+                    ctx.lineTo(x, y + r*0.48);
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.moveTo(x + r*0.2, y + r*0.45);
+                    ctx.lineTo(x + r*0.1, y + r*0.65);
+                    ctx.lineTo(x, y + r*0.48);
+                    ctx.fill();
+                }
+                ctx.restore(); // End face rotation
+
+                // Draw Timer Ring (Counter-Rotated)
+                if(isChasing && !enemiesFrozen) {
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(-currentRotation * Math.PI / 180);
+                    ctx.translate(-x, -y);
+
+                    const remaining = e.chaseEndTime - now;
+                    const ratio = Math.max(0, remaining / e.chaseDuration);
+
+                    ctx.lineWidth = size * 0.08;
+                    ctx.lineCap = 'round';
+                    
+                    ctx.beginPath();
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+                    ctx.arc(x, y, r * 1.3, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.strokeStyle = e.color;
+                    ctx.shadowColor = e.color;
+                    ctx.shadowBlur = 5;
+                    ctx.arc(x, y, r * 1.3, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * ratio));
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            });
+        }
+
+        // --- GHOST LOGIC ---
+        function spawnGhosts() {
+            ghosts = [];
+            const counts = { 'easy': 1, 'medium': 3, 'hard': 5 };
+            const numGhosts = counts[config.difficulty];
+            const colors = ['#FF0000', '#FFB8FF', '#00FFFF', '#FFB852', '#00FF00', '#0000FF'];
+
+            for(let i=0; i<numGhosts; i++) {
+                let valid = false;
+                let gx, gy;
+                while(!valid) {
+                    gx = Math.floor(Math.random() * (gridWidth - 2)) + 1;
+                    gy = Math.floor(Math.random() * (gridHeight - 2)) + 1;
+                    if(maze[gy][gx] === 0) {
+                        const dist = Math.abs(gx - player.x) + Math.abs(gy - player.y);
+                        if(dist > 15) valid = true; // Spawn far away
+                    }
+                }
+                ghosts.push({
+                    x: gx, y: gy,
+                    color: colors[i % colors.length],
+                    state: 'wandering', // wandering (hidden), chasing (visible), returning
+                    visible: false,
+                    lastMoveTime: 0,
+                    speed: 150,
+                    lastDir: {dx: 0, dy: 0},
+                    returnPos: null
+                });
+            }
+
+            if(ghostInterval) clearInterval(ghostInterval);
+            ghostInterval = setInterval(moveGhosts, 50);
+        }
+
+        function moveGhosts() {
+            if (isPaused || isTutorialActive) return;
+            let playerHit = false;
+            let now = Date.now();
+            let needsDraw = false;
+            let isAnyGhostChasing = false;
+
+            ghosts.forEach(ghost => {
+                if (now - ghost.lastMoveTime < ghost.speed) return;
+                ghost.lastMoveTime = now;
+                needsDraw = true;
+
+                if (ghost.state === 'chasing') isAnyGhostChasing = true;
+
+                // Calculate Euclidean distance for circles
+                const dx = player.x - ghost.x;
+                const dy = player.y - ghost.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+
+                // State Machine
+                if (ghost.state === 'wandering') {
+                    // Check inner circle (Entry radius ~5)
+                    if (dist < 5) {
+                        ghost.state = 'chasing';
+                        ghost.visible = true;
+                        ghost.returnPos = { x: ghost.x, y: ghost.y }; // Store start point
+                    }
+                } else if (ghost.state === 'chasing') {
+                    // Check outer circle (Exit radius ~10)
+                    if (dist > 10) {
+                        ghost.state = 'returning';
+                        // visible remains true while returning
+                    }
+                } else if (ghost.state === 'returning') {
+                    // Re-engage if player comes close again
+                    if (dist < 5) {
+                        ghost.state = 'chasing';
+                    }
+                }
+
+                // Movement
+                let nextMove = null;
+
+                if (ghost.state === 'chasing') {
+                    // Pathfind to player
+                    const pathToPlayer = findPath({x: ghost.x, y: ghost.y}, {x: player.x, y: player.y});
+                    if (pathToPlayer && pathToPlayer.length > 1) {
+                        nextMove = pathToPlayer[1];
+                        if (nextMove) {
+                            ghost.lastDir = { dx: nextMove.x - ghost.x, dy: nextMove.y - ghost.y };
+                        }
+                    }
+                } else if (ghost.state === 'returning') {
+                    // Pathfind to returnPos
+                    if (ghost.returnPos) {
+                        if (ghost.x === ghost.returnPos.x && ghost.y === ghost.returnPos.y) {
+                            // Arrived home
+                            ghost.state = 'wandering';
+                            ghost.visible = false;
+                            ghost.returnPos = null;
+                        } else {
+                            const pathToReturn = findPath({x: ghost.x, y: ghost.y}, ghost.returnPos);
+                            if (pathToReturn && pathToReturn.length > 1) {
+                                nextMove = pathToReturn[1];
+                                if (nextMove) {
+                                    ghost.lastDir = { dx: nextMove.x - ghost.x, dy: nextMove.y - ghost.y };
+                                }
+                            } else {
+                                // Path blocked? Reset to wandering
+                                ghost.state = 'wandering';
+                                ghost.visible = false;
+                            }
+                        }
+                    } else {
+                        ghost.state = 'wandering';
+                    }
+                }
+                
+                // Fallback / Wandering Logic (if no target or state is wandering)
+                if (!nextMove && ghost.state === 'wandering') {
+                    const dirs = [[0,1], [0,-1], [1,0], [-1,0]];
+                    let validNeighbors = [];
+                    dirs.forEach(([dx, dy]) => {
+                        const nx = ghost.x + dx;
+                        const ny = ghost.y + dy;
+                        if(nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight && maze[ny][nx] === 0) {
+                            validNeighbors.push({x: nx, y: ny, dx: dx, dy: dy});
+                        }
+                    });
+
+                    if(validNeighbors.length > 0) {
+                        const forwardMoves = validNeighbors.filter(n => {
+                            if (!ghost.lastDir || (ghost.lastDir.dx === 0 && ghost.lastDir.dy === 0)) return true;
+                            return !(n.dx === -ghost.lastDir.dx && n.dy === -ghost.lastDir.dy);
+                        });
+
+                        if (forwardMoves.length > 0) {
+                            const straightMove = forwardMoves.find(n => ghost.lastDir && n.dx === ghost.lastDir.dx && n.dy === ghost.lastDir.dy);
+                            if (straightMove && Math.random() < 0.7) {
+                                nextMove = straightMove;
+                            } else {
+                                nextMove = forwardMoves[Math.floor(Math.random() * forwardMoves.length)];
+                            }
+                        } else {
+                            nextMove = validNeighbors[0];
+                        }
+                        if (nextMove) {
+                            ghost.lastDir = { dx: nextMove.dx, dy: nextMove.dy };
+                        }
+                    }
+                }
+
+                // Update Position
+                if (nextMove) {
+                    ghost.x = nextMove.x;
+                    ghost.y = nextMove.y;
+                }
+
+                // Check Collision (Only if visible or revealed)
+                if ((ghost.visible || ghostsRevealed) && ghost.x === player.x && ghost.y === player.y) {
+                    playerHit = true;
+                }
+            });
+            
+            if (isAnyGhostChasing) {
+                SoundManager.play('hurry');
+            }
+            
+            if (playerHit) {
+                SoundManager.play('death');
+                isPaused = true;
+                stopMoving();
+                clearInterval(ghostInterval);
+                document.getElementById('timeout-msg').classList.remove('hidden');
+                document.querySelector('#timeout-msg h2').innerText = "BOO!";
+                document.querySelector('#timeout-msg h2').classList.replace('text-red-500', 'text-purple-600');
+                document.querySelector('#timeout-msg p').innerText = "A ghost caught you.";
+                
+                setTimeout(() => {
+                    document.querySelector('#timeout-msg h2').innerText = "TIME OUT";
+                    document.querySelector('#timeout-msg h2').classList.replace('text-purple-600', 'text-red-500');
+                    initGame();
+                }, 2000);
+            } else if (needsDraw) {
+                draw();
+            }
+        }
+
+        function drawGhosts(ctx, size) {
+            ghosts.forEach(g => {
+                // If not visible and not revealed by ability, skip
+                if (!g.visible && !ghostsRevealed) return; 
+
+                const x = g.x * size + size/2;
+                const y = g.y * size + size/2;
+                const r = size * 0.4;
+
+                // --- SPRITE DRAWING WITH COUNTER-ROTATION ---
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(-currentRotation * Math.PI / 180);
+                ctx.translate(-x, -y);
+
+                // When revealed by ability but not "chasing/visible", show as light gray
+                ctx.fillStyle = ghostsRevealed && !g.visible ? '#d1d5db' : g.color;
+                
+                ctx.beginPath();
+                // Top Dome
+                ctx.arc(x, y - r * 0.2, r, Math.PI, 0); 
+                // Right side down
+                ctx.lineTo(x + r, y + r);
+                // Wavy bottom
+                let waveW = (2 * r) / 3;
+                // Simple 3 bumps
+                ctx.lineTo(x + r - waveW/2, y + r*0.8);
+                ctx.lineTo(x + r - waveW, y + r);
+                ctx.lineTo(x + r - waveW*1.5, y + r*0.8);
+                ctx.lineTo(x + r - waveW*2, y + r);
+                ctx.lineTo(x - r, y + r);
+                // Left side up
+                ctx.lineTo(x - r, y - r * 0.2);
+                ctx.fill();
+
+                // Eyes
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(x - r*0.35, y - r*0.2, r*0.3, 0, Math.PI*2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(x + r*0.35, y - r*0.2, r*0.3, 0, Math.PI*2);
+                ctx.fill();
+
+                // Pupils (Blue)
+                ctx.fillStyle = 'blue';
+                // Look at player? Or just direction?
+                let pupDx = (g.lastDir ? g.lastDir.dx : 0) * r * 0.15;
+                let pupDy = (g.lastDir ? g.lastDir.dy : 0) * r * 0.15;
+                
+                ctx.beginPath();
+                ctx.arc(x - r*0.35 + pupDx, y - r*0.2 + pupDy, r*0.15, 0, Math.PI*2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(x + r*0.35 + pupDx, y - r*0.2 + pupDy, r*0.15, 0, Math.PI*2);
+                ctx.fill();
+
+                ctx.restore(); // Stop rotation
+            });
+        }
+
+        document.addEventListener('touchstart', (e) => {
+            if (document.getElementById('page-game').classList.contains('hidden')) return;
+            if (isPaused) return;
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (e) => {
+            if (document.getElementById('page-game').classList.contains('hidden')) return;
+            if (e.target.closest('button') || e.target.closest('#side-info-container')) return;
+            if (isPaused) return;
+            e.preventDefault(); 
+            const dx = e.changedTouches[0].screenX - touchStartX;
+            const dy = e.changedTouches[0].screenY - touchStartY;
+            if (Math.abs(dx) > SWIPE_THRESHOLD || Math.abs(dy) > SWIPE_THRESHOLD) {
+                // Apply rotation transform logic for touch
+                let moveDx = 0;
+                let moveDy = 0;
+                
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    // Horizontal swipe (visual)
+                    moveDx = dx > 0 ? 1 : -1;
+                } else {
+                    // Vertical swipe (visual)
+                    moveDy = dy > 0 ? 1 : -1;
+                }
+                
+                const rot = getRotatedInput(moveDx, moveDy);
+                startMoving(rot.dx, rot.dy);
+                
+                touchStartX = e.changedTouches[0].screenX;
+                touchStartY = e.changedTouches[0].screenY;
+            }
+        }, { passive: false });
+
+        document.addEventListener('touchend', () => {
+            if (document.getElementById('page-game').classList.contains('hidden')) return;
+            if (isPaused) return;
+            // CHANGE: Only stop if autoMove is disabled
+            if (!config.autoMove) {
+                stopMoving();
+            } else {
+                pendingDirection = null; // Clear manual input, let auto logic take over
+            }
+        }, { passive: true });
+
+        window.addEventListener('keydown', (e) => {
+            if (document.getElementById('page-game').classList.contains('hidden')) return;
+            if (isPaused) return;
+            const key = e.key.toLowerCase();
+            if (keyMap[key]) {
+                activeKeys.add(key);
+                const dir = keyMap[key];
+                // Apply rotation transform logic for keyboard
+                const rot = getRotatedInput(dir.dx, dir.dy);
+                startMoving(rot.dx, rot.dy);
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (document.getElementById('page-game').classList.contains('hidden')) return;
+            if (isPaused) return;
+            const key = e.key.toLowerCase();
+            if (keyMap[key]) {
+                activeKeys.delete(key);
+                if (activeKeys.size === 0) {
+                    // CHANGE: Only stop if autoMove is disabled
+                    if (!config.autoMove) {
+                        stopMoving();
+                    } else {
+                        pendingDirection = null; // Clear manual input
+                    }
+                } else {
+                    const lastKey = Array.from(activeKeys).pop();
+                    const dir = keyMap[lastKey];
+                    if (dir) {
+                        // Apply rotation transform logic for buffered input
+                        const rot = getRotatedInput(dir.dx, dir.dy);
+                        pendingDirection = { dx: rot.dx, dy: rot.dy };
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            if (!document.getElementById('page-game').classList.contains('hidden')) draw();
+        });
+
+        document.addEventListener('touchstart', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+    </script>
+</body>
+</html>
