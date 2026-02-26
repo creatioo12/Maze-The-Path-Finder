@@ -30,6 +30,39 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* Sophisticated background for the game page only - Spotlight moving along periphery */
+        #page-game::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: -1;
+            background-image: 
+                radial-gradient(var(--accent-stone) 1.5px, transparent 1.5px);
+            background-size: 30px 30px;
+            background-position: center center;
+            pointer-events: none;
+            
+            /* Spotlight Mask: Only shows dots in a small moving circular area */
+            mask-image: radial-gradient(circle, black 20%, transparent 70%);
+            -webkit-mask-image: radial-gradient(circle, black 20%, transparent 70%);
+            mask-size: 350px 350px;
+            -webkit-mask-size: 350px 350px;
+            mask-repeat: no-repeat;
+            -webkit-mask-repeat: no-repeat;
+            
+            opacity: 0.8;
+            /* Animation: Moves the spotlight "window" along the edges */
+            animation: moveSpotlight 15s linear infinite;
+        }
+
+        @keyframes moveSpotlight {
+            0%   { mask-position: -10% -10%; }
+            25%  { mask-position: 110% -10%; }
+            50%  { mask-position: 110% 110%; }
+            75%  { mask-position: -10% 110%; }
+            100% { mask-position: -10% -10%; }
+        }
+
         /* Page Transition Animation */
         .page-fade {
             animation: fadeIn 0.4s ease-out forwards;
@@ -466,101 +499,187 @@
         </div>
 
         <!-- NEW: Help Page -->
-        <div id="page-help" class="hidden page-fade flex flex-col w-full h-full overflow-y-auto no-scrollbar px-6 py-10 md:px-12">
+        <div id="page-help" class="hidden page-fade flex flex-col w-full h-full overflow-y-auto no-scrollbar px-6 py-10 md:px-12 bg-[#FDFCF0]">
             <!-- Header -->
-            <div class="flex items-center justify-between mb-8">
-                <button onclick="navigateTo('game')" class="p-2 -ml-2 text-[#8B7E66]">
+            <div class="flex items-center justify-between mb-10 max-w-4xl mx-auto w-full">
+                <button onclick="navigateTo('game')" class="p-3 bg-white rounded-2xl shadow-sm border border-[#D4CEAF] text-[#8B7E66] hover:scale-105 transition-transform">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                 </button>
-                <h2 class="text-xl font-bold uppercase tracking-widest text-[#8B7E66]">Guide</h2>
-                <div class="w-8"></div>
+                <h2 class="text-2xl font-bold uppercase tracking-[0.3em] text-[#8B7E66]">Guide</h2>
+                <div class="w-12"></div>
             </div>
 
-            <div class="max-w-xl mx-auto w-full space-y-8 text-[#5D5443]">
-                <!-- Basics -->
-                <section class="space-y-3">
-                    <h3 class="text-lg font-bold border-b border-[#D4CEAF] pb-2 text-[#8B7E66]">Goal</h3>
-                    <p class="text-sm leading-relaxed font-medium">Navigate the maze to find the exit. Use arrow keys or swipe gestures to move. Collect keys by completing levels to track your progress.</p>
-                </section>
+            <div class="max-w-4xl mx-auto w-full space-y-12 pb-20">
+                <!-- Hero Section -->
+                <div class="bg-white rounded-[2.5rem] p-10 md:p-16 border border-[#D4CEAF] shadow-sm relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-[#FDFCF0] rounded-full -mr-20 -mt-20 opacity-50"></div>
+                    <div class="relative z-10">
+                        <h3 class="text-3xl md:text-5xl font-bold text-[#8B7E66] mb-4 tracking-tight">Maze: The Path Finder</h3>
+                        <p class="text-[#5D5443] text-sm md:text-lg max-w-xl leading-relaxed font-medium">Welcome to the ultimate test of navigation and strategy. Every level is a unique puzzle designed to challenge your spatial awareness.</p>
+                    </div>
+                </div>
 
-                <!-- Abilities Logic -->
-                <section class="space-y-3">
-                    <h3 class="text-lg font-bold border-b border-[#D4CEAF] pb-2 text-[#8B7E66]">Special Abilities</h3>
-                    <p class="text-sm leading-relaxed font-medium">In special modes (Time, Dark, Enemy, Ghost, Zone), you get a unique ability button. Instead of costing currency, these have usage limits based on difficulty:</p>
-                    <div class="grid grid-cols-3 gap-2 mt-2">
-                        <div class="bg-white border border-[#D4CEAF] rounded-lg p-3 text-center">
-                            <span class="block font-bold text-[#8B7E66]">Easy</span>
-                            <span class="text-xs text-gray-500">1 Use</span>
+                <!-- How to Play Bento -->
+                <section>
+                    <h3 class="text-lg font-bold uppercase tracking-widest text-[#8B7E66] mb-6 flex items-center gap-3">
+                        <span class="w-8 h-8 bg-[#8B7E66] text-white rounded-lg flex items-center justify-center text-sm">01</span>
+                        How to Play
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-white p-6 rounded-3xl border border-[#D4CEAF] shadow-sm hover:shadow-md transition-shadow">
+                            <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </div>
+                            <h4 class="font-bold text-[#5D5443] mb-2">Move</h4>
+                            <p class="text-xs text-[#8B7E66] leading-relaxed">Use Arrow Keys or Swipe anywhere on the screen to navigate the ball.</p>
                         </div>
-                        <div class="bg-white border border-[#D4CEAF] rounded-lg p-3 text-center">
-                            <span class="block font-bold text-[#8B7E66]">Medium</span>
-                            <span class="text-xs text-gray-500">2 Uses</span>
+                        <div class="bg-white p-6 rounded-3xl border border-[#D4CEAF] shadow-sm hover:shadow-md transition-shadow">
+                            <div class="w-12 h-12 bg-yellow-50 rounded-2xl flex items-center justify-center mb-4">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                            </div>
+                            <h4 class="font-bold text-[#5D5443] mb-2">Collect</h4>
+                            <p class="text-xs text-[#8B7E66] leading-relaxed">Complete levels to earn Keys. Use them for hints when you're stuck.</p>
                         </div>
-                        <div class="bg-white border border-[#D4CEAF] rounded-lg p-3 text-center">
-                            <span class="block font-bold text-[#8B7E66]">Hard</span>
-                            <span class="text-xs text-gray-500">3 Uses</span>
+                        <div class="bg-white p-6 rounded-3xl border border-[#D4CEAF] shadow-sm hover:shadow-md transition-shadow">
+                            <div class="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center mb-4">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            </div>
+                            <h4 class="font-bold text-[#5D5443] mb-2">Escape</h4>
+                            <p class="text-xs text-[#8B7E66] leading-relaxed">Find the exit point to clear the level and unlock new challenges.</p>
                         </div>
                     </div>
                 </section>
 
-                <!-- Modes Detail -->
-                <section class="space-y-3">
-                    <h3 class="text-lg font-bold border-b border-[#D4CEAF] pb-2 text-[#8B7E66]">Modes & Monsters</h3>
-                    
-                    <div class="space-y-4">
-                        <div class="flex items-start gap-3">
-                            <div class="p-2 bg-white rounded-lg border border-[#D4CEAF] shrink-0">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B7E66" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <!-- Modes Section -->
+                <section>
+                    <h3 class="text-lg font-bold uppercase tracking-widest text-[#8B7E66] mb-6 flex items-center gap-3">
+                        <span class="w-8 h-8 bg-[#8B7E66] text-white rounded-lg flex items-center justify-center text-sm">02</span>
+                        Game Modes
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Mode Card -->
+                        <div class="flex gap-4 p-5 bg-white rounded-3xl border border-[#D4CEAF] shadow-sm">
+                            <div class="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center shrink-0">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                             </div>
                             <div>
-                                <h4 class="font-bold text-sm">Time Mode</h4>
-                                <p class="text-xs opacity-70 mt-1">Race against the clock. Use the ability button to add bonus time.</p>
+                                <h4 class="font-bold text-[#5D5443]">Time Mode</h4>
+                                <p class="text-xs text-[#8B7E66] mt-1 leading-relaxed">Race against the clock. Use the <strong>Bonus Time</strong> ability to stay alive!</p>
                             </div>
                         </div>
-
-                        <div class="flex items-start gap-3">
-                            <div class="p-2 bg-white rounded-lg border border-[#D4CEAF] shrink-0">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B7E66" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                        <!-- Mode Card -->
+                        <div class="flex gap-4 p-5 bg-white rounded-3xl border border-[#D4CEAF] shadow-sm">
+                            <div class="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center shrink-0">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                             </div>
                             <div>
-                                <h4 class="font-bold text-sm">Dark Mode</h4>
-                                <p class="text-xs opacity-70 mt-1">Visibility is limited. Use the ability button to temporarily illuminate the maze.</p>
+                                <h4 class="font-bold text-[#5D5443]">Dark Mode</h4>
+                                <p class="text-xs text-[#8B7E66] mt-1 leading-relaxed">Visibility is limited. Use <strong>Illuminate</strong> to reveal your surroundings.</p>
                             </div>
                         </div>
-
-                        <div class="flex items-start gap-3">
-                            <div class="p-2 bg-white rounded-lg border border-[#D4CEAF] shrink-0">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="#8B7E66"><path d="M12 2C7 2 3 6 3 11v8l3-3 3 3 3-3 3 3 3-3 3 3v-8c0-5-4-9-9-9z"/><rect x="7" y="9" width="2" height="2" fill="white"/><rect x="15" y="9" width="2" height="2" fill="white"/></svg>
+                        <!-- Mode Card -->
+                        <div class="flex gap-4 p-5 bg-white rounded-3xl border border-[#D4CEAF] shadow-sm">
+                            <div class="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center shrink-0">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="#f97316"><path d="M12 2C7 2 3 6 3 11v8l3-3 3 3 3-3 3 3 3-3 3 3v-8c0-5-4-9-9-9z"/><rect x="7" y="9" width="2" height="2" fill="white"/><rect x="15" y="9" width="2" height="2" fill="white"/></svg>
                             </div>
                             <div>
-                                <h4 class="font-bold text-sm">Enemy Mode</h4>
-                                <p class="text-xs opacity-70 mt-1">Avoid guardians. Use ability to freeze them for 5s.</p>
-                                <ul class="text-xs mt-2 space-y-1 list-disc list-inside opacity-80">
-                                    <li><span class="text-blue-500 font-bold">Blue</span>: Balanced stats.</li>
-                                    <li><span class="text-yellow-600 font-bold">Yellow</span>: Fast speed, low vision.</li>
-                                    <li><span class="text-purple-600 font-bold">Purple</span>: Very fast, high vision.</li>
-                                </ul>
+                                <h4 class="font-bold text-[#5D5443]">Enemy Mode</h4>
+                                <p class="text-xs text-[#8B7E66] mt-1 leading-relaxed">Avoid guardians. Use <strong>Freeze</strong> to stop them in their tracks for 5 seconds.</p>
                             </div>
                         </div>
-
-                        <div class="flex items-start gap-3">
-                            <div class="p-2 bg-white rounded-lg border border-[#D4CEAF] shrink-0">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="#8B7E66" stroke="#8B7E66"><path d="M9 22l1-1.5L11.5 22l1.5-1.5L14.5 22l1.5-1.5 1-1.5V10a8 8 0 1 0-16 0v9l1 1.5 1.5 1.5 1.5-1.5 1 1.5z"/><path stroke="white" stroke-width="0" fill="white" d="M8 10h2v2H8zM14 10h2v2h-2z"/></svg>
+                        <!-- Mode Card -->
+                        <div class="flex gap-4 p-5 bg-white rounded-3xl border border-[#D4CEAF] shadow-sm">
+                            <div class="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center shrink-0">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="#a855f7" stroke="#a855f7"><path d="M9 22l1-1.5L11.5 22l1.5-1.5L14.5 22l1.5-1.5 1-1.5V10a8 8 0 1 0-16 0v9l1 1.5 1.5 1.5 1.5-1.5 1 1.5z"/><path stroke="white" stroke-width="0" fill="white" d="M8 10h2v2H8zM14 10h2v2h-2z"/></svg>
                             </div>
                             <div>
-                                <h4 class="font-bold text-sm">Ghost Mode</h4>
-                                <p class="text-xs opacity-70 mt-1">Invisible stalkers. They appear when close. Use ability to reveal them for 5s.</p>
+                                <h4 class="font-bold text-[#5D5443]">Ghost Mode</h4>
+                                <p class="text-xs text-[#8B7E66] mt-1 leading-relaxed">Invisible stalkers follow you. Use <strong>Reveal</strong> to see them before they strike.</p>
                             </div>
                         </div>
-
-                         <div class="flex items-start gap-3">
-                            <div class="p-2 bg-white rounded-lg border border-[#D4CEAF] shrink-0">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <!-- Mode Card -->
+                        <div class="flex gap-4 p-5 bg-white rounded-3xl border border-[#D4CEAF] shadow-sm">
+                            <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center shrink-0">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                             </div>
                             <div>
-                                <h4 class="font-bold text-sm">Zone Mode</h4>
-                                <p class="text-xs opacity-70 mt-1">A deadly flood consumes the maze. Reach the Safe Zone (Green) and <strong>wait</strong> until the flood passes. Use Shield ability to dissipate a wave instantly.</p>
+                                <h4 class="font-bold text-[#5D5443]">Zone Mode</h4>
+                                <p class="text-xs text-[#8B7E66] mt-1 leading-relaxed">Survive the flood! Reach the <strong>Safe Zone</strong> and use <strong>Shield</strong> to dissipate waves.</p>
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Abilities Section -->
+                <section>
+                    <h3 class="text-lg font-bold uppercase tracking-widest text-[#8B7E66] mb-6 flex items-center gap-3">
+                        <span class="w-8 h-8 bg-[#8B7E66] text-white rounded-lg flex items-center justify-center text-sm">03</span>
+                        Abilities & Limits
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white p-8 rounded-[2rem] border border-[#D4CEAF] shadow-sm">
+                            <h4 class="font-bold text-[#5D5443] mb-4 flex items-center gap-2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M2 12h20"/></svg>
+                                Usage Limits
+                            </h4>
+                            <p class="text-xs text-[#8B7E66] mb-6 leading-relaxed">Special abilities are free but limited per level. Choose your difficulty wisely to manage your resources:</p>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div class="bg-[#FDFCF0] rounded-2xl p-4 text-center border border-[#D4CEAF]">
+                                    <span class="block font-bold text-[#8B7E66] text-lg">1</span>
+                                    <span class="text-[10px] uppercase font-bold tracking-wider opacity-60">Easy</span>
+                                </div>
+                                <div class="bg-[#FDFCF0] rounded-2xl p-4 text-center border border-[#D4CEAF]">
+                                    <span class="block font-bold text-[#8B7E66] text-lg">2</span>
+                                    <span class="text-[10px] uppercase font-bold tracking-wider opacity-60">Medium</span>
+                                </div>
+                                <div class="bg-[#FDFCF0] rounded-2xl p-4 text-center border border-[#D4CEAF]">
+                                    <span class="block font-bold text-[#8B7E66] text-lg">3</span>
+                                    <span class="text-[10px] uppercase font-bold tracking-wider opacity-60">Hard</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-8 rounded-[2rem] border border-[#D4CEAF] shadow-sm">
+                            <h4 class="font-bold text-[#5D5443] mb-4 flex items-center gap-2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                                Hints & Currency
+                            </h4>
+                            <p class="text-xs text-[#8B7E66] leading-relaxed mb-4">Stuck in a normal maze? Use your collected Keys to buy hints:</p>
+                            <ul class="space-y-3">
+                                <li class="flex items-center justify-between text-xs font-bold text-[#5D5443] bg-[#FDFCF0] p-3 rounded-xl border border-[#D4CEAF]">
+                                    <span>Next Step</span>
+                                    <span class="text-[#eab308]">10 Keys</span>
+                                </li>
+                                <li class="flex items-center justify-between text-xs font-bold text-[#5D5443] bg-[#FDFCF0] p-3 rounded-xl border border-[#D4CEAF]">
+                                    <span>Flash Maze</span>
+                                    <span class="text-[#eab308]">20 Keys</span>
+                                </li>
+                                <li class="flex items-center justify-between text-xs font-bold text-[#5D5443] bg-[#FDFCF0] p-3 rounded-xl border border-[#D4CEAF]">
+                                    <span>Teleport</span>
+                                    <span class="text-[#eab308]">40 Keys</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Settings Section -->
+                <section>
+                    <h3 class="text-lg font-bold uppercase tracking-widest text-[#8B7E66] mb-6 flex items-center gap-3">
+                        <span class="w-8 h-8 bg-[#8B7E66] text-white rounded-lg flex items-center justify-center text-sm">04</span>
+                        Customization
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-white p-6 rounded-3xl border border-[#D4CEAF] shadow-sm">
+                            <h4 class="font-bold text-sm text-[#5D5443] mb-2">Autoscroll</h4>
+                            <p class="text-[11px] text-[#8B7E66] leading-relaxed">The maze automatically scrolls to keep you centered. Perfect for fast-paced play.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-3xl border border-[#D4CEAF] shadow-sm">
+                            <h4 class="font-bold text-sm text-[#5D5443] mb-2">Dynamic Ball</h4>
+                            <p class="text-[11px] text-[#8B7E66] leading-relaxed">The ball changes size based on your movement speed. Visual feedback for momentum.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-3xl border border-[#D4CEAF] shadow-sm">
+                            <h4 class="font-bold text-sm text-[#5D5443] mb-2">Tail</h4>
+                            <p class="text-[11px] text-[#8B7E66] leading-relaxed">Leaves a glowing trail behind you. Helps you remember where you've already been.</p>
                         </div>
                     </div>
                 </section>
@@ -593,13 +712,13 @@
                                 <svg width="20" height="20" class="md:w-[22px] md:h-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
                             </button>
                             <div id="hint-menu" class="hidden absolute left-0 top-full mt-2 w-40 bg-white rounded-xl shadow-xl border border-[--border-light] z-50 overflow-hidden hint-dialog">
-                                <button onclick="selectHint('Next Step')" class="w-full text-left px-4 py-3 text-xs font-bold hover:bg-[#FDFCF0] transition-colors border-b border-[--border-light] text-[#8B7E66] flex justify-between">
+                                <button onclick="selectHint('Next Step')" class="w-full text-left px-4 py-3 text-xs font-bold hover:bg-[var(--hover-bg,#FDFCF0)] transition-colors border-b border-[--border-light] text-[#8B7E66] flex justify-between">
                                     <span>Next Step</span> <span class="text-[#eab308]">-10</span>
                                 </button>
-                                <button id="btn-hint-flash" onclick="selectHint('Flash')" class="w-full text-left px-4 py-3 text-xs font-bold hover:bg-[#FDFCF0] transition-colors border-b border-[--border-light] text-[#8B7E66] flex justify-between">
+                                <button id="btn-hint-flash" onclick="selectHint('Flash')" class="w-full text-left px-4 py-3 text-xs font-bold hover:bg-[var(--hover-bg,#FDFCF0)] transition-colors border-b border-[--border-light] text-[#8B7E66] flex justify-between">
                                     <span>Flash</span> <span class="text-[#eab308]">-20</span>
                                 </button>
-                                <button onclick="selectHint('Teleport')" class="w-full text-left px-4 py-3 text-xs font-bold hover:bg-[#FDFCF0] transition-colors text-[#8B7E66] flex justify-between">
+                                <button onclick="selectHint('Teleport')" class="w-full text-left px-4 py-3 text-xs font-bold hover:bg-[var(--hover-bg,#FDFCF0)] transition-colors text-[#8B7E66] flex justify-between">
                                     <span>Teleport</span> <span class="text-[#eab308]">-40</span>
                                 </button>
                             </div>
@@ -653,7 +772,7 @@
                             <!-- Settings Menu (Auto Move Toggle) -->
                             <div id="settings-menu" class="hidden absolute top-full left-0 md:left-full md:top-0 mt-2 md:mt-0 md:ml-2 bg-white rounded-xl shadow-xl border border-[--border-light] z-50 p-3 min-w-[160px] hint-dialog">
                                 <div class="flex items-center justify-between gap-3 cursor-pointer mb-3" onclick="toggleAutoMove(event)">
-                                    <span class="text-xs font-bold text-[#8B7E66]">Automatic Move</span>
+                                    <span class="text-xs font-bold text-[#8B7E66]">Autoscroll</span>
                                     <!-- IMPROVED TOGGLE BUTTON -->
                                     <div class="relative inline-block w-10 h-6 shrink-0">
                                         <div id="auto-move-bg" class="w-full h-full bg-gray-300 rounded-full transition-colors duration-200"></div>
@@ -666,6 +785,22 @@
                                     <div class="relative inline-block w-10 h-6 shrink-0">
                                         <div id="dynamic-ball-bg" class="w-full h-full bg-gray-300 rounded-full transition-colors duration-200"></div>
                                         <div id="dynamic-ball-dot" class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow-sm"></div>
+                                    </div>
+                                </div>
+                                <!-- NEW: Tail Toggle -->
+                                <div class="flex items-center justify-between gap-3 cursor-pointer mb-3" onclick="toggleTail(event)">
+                                    <span class="text-xs font-bold text-[#8B7E66]">Tail</span>
+                                    <div class="relative inline-block w-10 h-6 shrink-0">
+                                        <div id="tail-bg" class="w-full h-full bg-gray-300 rounded-full transition-colors duration-200"></div>
+                                        <div id="tail-dot" class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow-sm"></div>
+                                    </div>
+                                </div>
+                                <!-- NEW: Themes Toggle -->
+                                <div class="flex items-center justify-between gap-3 cursor-pointer mb-3" onclick="toggleThemes(event)">
+                                    <span class="text-xs font-bold text-[#8B7E66]">Themes</span>
+                                    <div class="relative inline-block w-10 h-6 shrink-0">
+                                        <div id="themes-bg" class="w-full h-full bg-gray-300 rounded-full transition-colors duration-200"></div>
+                                        <div id="themes-dot" class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow-sm"></div>
                                     </div>
                                 </div>
                                 <!-- NEW: Help Button with Enhanced Icon -->
@@ -760,7 +895,7 @@
                 </div>
             </div>
             
-            <p class="mt-4 text-[10px] text-[#8B7E66]/60 font-bold uppercase tracking-widest">Hold arrow keys or slide anywhere to move</p>
+            <p id="move-instruction" class="mt-4 text-[10px] text-[#8B7E66]/60 font-bold uppercase tracking-widest">Hold arrow keys or slide anywhere to move</p>
         </div>
     </div>
 
@@ -909,7 +1044,46 @@
         };
 
         // Game State
-        let config = { difficulty: 'easy', shape: 'square', mode: 'normal', autoMove: true, dynamicBall: true, currentLevel: 1, isCustom: false };
+        let config = { difficulty: 'easy', shape: 'square', mode: 'normal', autoMove: true, dynamicBall: true, tail: false, themes: false, currentLevel: 1, isCustom: false };
+        let playerHistory = [];
+        let tailDecayInterval = null;
+        let currentThemeIndex = 0;
+
+        const GAME_THEMES = [
+            { name: 'Classic Dark', bg: '#1a1a1a', text: '#ffffff', accent: '#EF4444', border: '#333333', dots: '#444444' },
+            { name: 'Midnight Blue', bg: '#0f172a', text: '#f8fafc', accent: '#38bdf8', border: '#1e293b', dots: '#334155' },
+            { name: 'Forest', bg: '#064e3b', text: '#ecfdf5', accent: '#10b981', border: '#065f46', dots: '#047857' },
+            { name: 'Sunset', bg: '#451a03', text: '#fff7ed', accent: '#f97316', border: '#78350f', dots: '#92400e' },
+            { name: 'Cyberpunk', bg: '#2e1065', text: '#fae8ff', accent: '#d946ef', border: '#4c1d95', dots: '#581c87' },
+            { name: 'Royal', bg: '#1e1b4b', text: '#e0e7ff', accent: '#6366f1', border: '#312e81', dots: '#3730a3' },
+            { name: 'Rose', bg: '#4c0519', text: '#fff1f2', accent: '#f43f5e', border: '#881337', dots: '#9f1239' },
+            { name: 'Ocean', bg: '#164e63', text: '#ecfeff', accent: '#06b6d4', border: '#155e75', dots: '#0891b2' },
+            { name: 'Slate', bg: '#334155', text: '#f1f5f9', accent: '#94a3b8', border: '#475569', dots: '#64748b' },
+            { name: 'Volcano', bg: '#422006', text: '#fef3c7', accent: '#f59e0b', border: '#713f12', dots: '#78350f' }
+        ];
+        
+        // Theme Colors (Changes every 5 levels)
+        const THEME_COLORS = [
+            '#EF4444', // Red (Levels 1-5)
+            '#3B82F6', // Blue (Levels 6-10)
+            '#10B981', // Emerald (Levels 11-15)
+            '#F59E0B', // Amber (Levels 16-20)
+            '#8B5CF6', // Violet (Levels 21-25)
+            '#EC4899', // Pink (Levels 26-30)
+            '#06B6D4', // Cyan (Levels 31-35)
+            '#84CC16', // Lime (Levels 36-40)
+            '#6366F1', // Indigo (Levels 41-45)
+            '#D946EF'  // Fuchsia (Levels 46-50)
+        ];
+
+        function getThemeColor() {
+            if (config.themes) {
+                return GAME_THEMES[currentThemeIndex].accent;
+            }
+            const index = Math.floor((config.currentLevel - 1) / 5) % THEME_COLORS.length;
+            return THEME_COLORS[index];
+        }
+
         let isTutorialActive = false;
         
         // Seeded Random Implementation
@@ -1216,6 +1390,11 @@
             });
             document.getElementById('page-' + pageId).classList.remove('hidden');
             
+            // NEW: Reset theme when leaving game page
+            if (pageId !== 'game') {
+                resetGameTheme();
+            }
+            
             const maxCleared = parseInt(localStorage.getItem('maze_max_cleared')) || 0;
 
             if (pageId === 'home') {
@@ -1520,25 +1699,37 @@
             const autoDot = document.getElementById('auto-move-dot');
             const dynBg = document.getElementById('dynamic-ball-bg');
             const dynDot = document.getElementById('dynamic-ball-dot');
+            const tailBg = document.getElementById('tail-bg');
+            const tailDot = document.getElementById('tail-dot');
+            const themesBg = document.getElementById('themes-bg');
+            const themesDot = document.getElementById('themes-dot');
 
-            if (config.autoMove) {
-                autoBg.classList.remove('bg-gray-300');
-                autoBg.classList.add('bg-[#8B7E66]');
-                autoDot.classList.add('translate-x-[16px]');
-            } else {
-                autoBg.classList.add('bg-gray-300');
-                autoBg.classList.remove('bg-[#8B7E66]');
-                autoDot.classList.remove('translate-x-[16px]');
-            }
+            const theme = config.themes ? GAME_THEMES[currentThemeIndex] : null;
+            const activeColor = theme ? theme.dots : '#8B7E66';
 
-            if (config.dynamicBall) {
-                dynBg.classList.remove('bg-gray-300');
-                dynBg.classList.add('bg-[#8B7E66]');
-                dynDot.classList.add('translate-x-[16px]');
-            } else {
-                dynBg.classList.add('bg-gray-300');
-                dynBg.classList.remove('bg-[#8B7E66]');
-                dynDot.classList.remove('translate-x-[16px]');
+            const updateToggle = (bg, dot, isActive) => {
+                if (isActive) {
+                    bg.classList.remove('bg-gray-300');
+                    bg.style.backgroundColor = activeColor;
+                    dot.classList.add('translate-x-[16px]');
+                } else {
+                    bg.classList.add('bg-gray-300');
+                    bg.style.backgroundColor = '';
+                    dot.classList.remove('translate-x-[16px]');
+                }
+            };
+
+            updateToggle(autoBg, autoDot, config.autoMove);
+            updateToggle(dynBg, dynDot, config.dynamicBall);
+            updateToggle(tailBg, tailDot, config.tail);
+            updateToggle(themesBg, themesDot, config.themes);
+
+            // Update move instruction text
+            const moveInstruction = document.getElementById('move-instruction');
+            if (moveInstruction) {
+                moveInstruction.innerText = config.autoMove ? 
+                    'Press arrow keys or slide anywhere to move' : 
+                    'Hold arrow keys or slide anywhere to move';
             }
         }
 
@@ -1546,38 +1737,144 @@
             event.stopPropagation();
             SoundManager.play('click');
             config.autoMove = !config.autoMove;
-            
-            const bg = document.getElementById('auto-move-bg');
-            const dot = document.getElementById('auto-move-dot');
-            
-            if (config.autoMove) {
-                bg.classList.remove('bg-gray-300');
-                bg.classList.add('bg-[#8B7E66]');
-                dot.classList.add('translate-x-[16px]');
-            } else {
-                bg.classList.add('bg-gray-300');
-                bg.classList.remove('bg-[#8B7E66]');
-                dot.classList.remove('translate-x-[16px]');
-            }
+            updateSettingsUI();
         }
 
         function toggleDynamicBall(event) {
             event.stopPropagation();
             SoundManager.play('click');
             config.dynamicBall = !config.dynamicBall;
-            
-            const bg = document.getElementById('dynamic-ball-bg');
-            const dot = document.getElementById('dynamic-ball-dot');
-            
-            if (config.dynamicBall) {
-                bg.classList.remove('bg-gray-300');
-                bg.classList.add('bg-[#8B7E66]');
-                dot.classList.add('translate-x-[16px]');
-            } else {
-                bg.classList.add('bg-gray-300');
-                bg.classList.remove('bg-[#8B7E66]');
-                dot.classList.remove('translate-x-[16px]');
+            updateSettingsUI();
+        }
+
+        function toggleTail(event) {
+            event.stopPropagation();
+            SoundManager.play('click');
+            config.tail = !config.tail;
+            if (!config.tail) {
+                playerHistory = [];
+                if (tailDecayInterval) {
+                    clearInterval(tailDecayInterval);
+                    tailDecayInterval = null;
+                }
             }
+            updateSettingsUI();
+        }
+
+        function toggleThemes(event) {
+            event.stopPropagation();
+            SoundManager.play('click');
+            config.themes = !config.themes;
+            
+            if (config.themes) {
+                applyGameTheme();
+            } else {
+                resetGameTheme();
+            }
+            updateSettingsUI();
+            draw();
+        }
+
+        function applyGameTheme() {
+            if (!config.themes) return;
+            const theme = GAME_THEMES[currentThemeIndex];
+            const page = document.getElementById('page-game');
+            if (!page || !theme) return;
+
+            // Update CSS variables for the game page scope
+            page.style.setProperty('--bg-cream', theme.bg);
+            page.style.setProperty('--accent-stone', theme.dots);
+            page.style.setProperty('--text-dark', theme.text);
+            page.style.setProperty('--border-light', theme.border);
+            page.style.setProperty('--hover-bg', theme.border);
+
+            page.style.backgroundColor = theme.bg;
+            
+            // Theme the header (especially for mobile)
+            const header = page.querySelector('header');
+            if (header) {
+                header.style.backgroundColor = theme.bg;
+                header.style.borderColor = theme.border;
+            }
+
+            // Theme the key counter container
+            const keyCounter = page.querySelector('.bg-\\[\\#F7F5E6\\]');
+            if (keyCounter) {
+                keyCounter.style.backgroundColor = theme.border;
+                keyCounter.style.borderColor = theme.dots;
+            }
+
+            // Theme the menus
+            const menus = page.querySelectorAll('#hint-menu, #settings-menu');
+            menus.forEach(menu => {
+                menu.style.backgroundColor = theme.bg;
+                menu.style.borderColor = theme.border;
+            });
+
+            // Theme the UI elements - using a broad selector for all relevant text classes
+            const uiElements = page.querySelectorAll('[class*="text-[#8B7E66]"], .text-gray-500, #timer-display, #level-num-display, #level-number-display, #level-label, .text-xs.font-bold, p.mt-4.text-\\[10px\\]');
+            uiElements.forEach(el => {
+                el.style.color = theme.text;
+            });
+
+            // Theme the SVGs
+            const svgs = page.querySelectorAll('svg');
+            svgs.forEach(svg => {
+                // Don't override the key icon color if it's yellow
+                if (svg.getAttribute('stroke') !== '#eab308') {
+                    svg.setAttribute('stroke', theme.text);
+                }
+            });
+
+            canvas.style.borderColor = theme.border;
+            canvas.style.borderWidth = '4px';
+        }
+
+        function resetGameTheme() {
+            const page = document.getElementById('page-game');
+            if (!page) return;
+            
+            // Reset CSS variables
+            page.style.removeProperty('--bg-cream');
+            page.style.removeProperty('--accent-stone');
+            page.style.removeProperty('--text-dark');
+            page.style.removeProperty('--border-light');
+            page.style.removeProperty('--hover-bg');
+
+            page.style.backgroundColor = '';
+            
+            const header = page.querySelector('header');
+            if (header) {
+                header.style.backgroundColor = '';
+                header.style.borderColor = '';
+            }
+
+            const keyCounter = page.querySelector('.bg-\\[\\#F7F5E6\\]');
+            if (keyCounter) {
+                keyCounter.style.backgroundColor = '';
+                keyCounter.style.borderColor = '';
+            }
+
+            const menus = page.querySelectorAll('#hint-menu, #settings-menu');
+            menus.forEach(menu => {
+                menu.style.backgroundColor = '';
+                menu.style.borderColor = '';
+            });
+
+            const uiElements = page.querySelectorAll('[class*="text-[#8B7E66]"], .text-gray-500, #timer-display, #level-num-display, #level-number-display, #level-label, .text-xs.font-bold, p.mt-4.text-\\[10px\\]');
+            uiElements.forEach(el => {
+                el.style.color = '';
+            });
+
+            const svgs = page.querySelectorAll('svg');
+            svgs.forEach(svg => {
+                if (svg.getAttribute('stroke') !== '#eab308') {
+                    svg.setAttribute('stroke', '#8B7E66');
+                }
+            });
+
+            canvas.style.borderColor = '';
+            canvas.style.borderWidth = '';
         }
 
         // --- SPECIAL ABILITY HANDLERS ---
@@ -1979,14 +2276,24 @@
             // Set Seeded Random for fixed levels
             if (config.isCustom) {
                 currentRandom = Math.random;
+                currentThemeIndex = Math.floor(Math.random() * GAME_THEMES.length);
             } else {
                 currentRandom = seededRandom(config.currentLevel * 1000);
+                currentThemeIndex = (config.currentLevel - 1) % GAME_THEMES.length;
             }
+
+            if (config.themes) {
+                applyGameTheme();
+            } else {
+                resetGameTheme();
+            }
+            updateSettingsUI();
 
             const sizes = { easy: 35, medium: 55, hard: 75 };
             gridWidth = gridHeight = sizes[config.difficulty];
             maze = generateMaze(gridWidth, gridHeight);
             player = { x: 1, y: 1 };
+            playerHistory = [];
             hintPath = [];
             pendingDirection = null;
             currentDirection = null;
@@ -2445,7 +2752,8 @@
             const drawCellSize = containerSize / gridWidth;
 
             ctx.clearRect(0, 0, containerSize, containerSize);
-            ctx.fillStyle = '#FFFFFF';
+            const theme = config.themes ? GAME_THEMES[currentThemeIndex] : null;
+            ctx.fillStyle = theme ? theme.bg : '#FFFFFF';
             ctx.fillRect(0, 0, containerSize, containerSize);
 
             // Draw Dead Zone (Shrinking Inverted SQUARE) BEFORE walls
@@ -2477,7 +2785,7 @@
                 ctx.restore();
             }
 
-            ctx.strokeStyle = '#000000';
+            ctx.strokeStyle = theme ? theme.text : '#000000';
             ctx.lineWidth = Math.max(1, drawCellSize * 0.15); 
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
@@ -2518,8 +2826,10 @@
             if (config.mode === 'dark' && guidePoints.length > 0) {
                 guidePoints.forEach(pt => {
                     ctx.save();
-                    ctx.fillStyle = '#06b6d4'; // Cyan
-                    ctx.shadowColor = '#06b6d4';
+                    const theme = config.themes ? GAME_THEMES[currentThemeIndex] : null;
+                    const dotColor = theme ? theme.dots : '#06b6d4';
+                    ctx.fillStyle = dotColor;
+                    ctx.shadowColor = dotColor;
                     ctx.shadowBlur = 10;
                     ctx.beginPath();
                     ctx.arc(pt.x * drawCellSize + drawCellSize/2, pt.y * drawCellSize + drawCellSize/2, drawCellSize * 0.3, 0, Math.PI * 2);
@@ -2548,12 +2858,28 @@
             }
 
             // Goal
-            ctx.strokeStyle = '#F87171';
+            const themeColor = getThemeColor();
+            ctx.strokeStyle = themeColor;
             ctx.lineWidth = 2;
             ctx.strokeRect(goal.x * drawCellSize + drawCellSize*0.1, goal.y * drawCellSize + drawCellSize*0.1, drawCellSize*0.8, drawCellSize*0.8);
 
+            // Tail
+            if (config.tail && playerHistory.length > 0) {
+                playerHistory.forEach((pos, i) => {
+                    const alpha = (i + 1) / (playerHistory.length + 1) * 0.4;
+                    ctx.fillStyle = themeColor;
+                    ctx.globalAlpha = alpha;
+                    ctx.beginPath();
+                    // Slightly smaller radius for tail segments
+                    const r = drawCellSize * 0.3 * (0.6 + (i / playerHistory.length) * 0.4);
+                    ctx.arc(pos.x * drawCellSize + drawCellSize/2, pos.y * drawCellSize + drawCellSize/2, r, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.globalAlpha = 1.0;
+            }
+
             // Player
-            ctx.fillStyle = '#F87171';
+            ctx.fillStyle = themeColor;
             ctx.beginPath();
             
             // Dynamic Ball Sizing
@@ -2628,6 +2954,10 @@
 
         function startMoving(dx, dy) {
             if (isPaused || isTutorialActive) return;
+            if (tailDecayInterval) {
+                clearInterval(tailDecayInterval);
+                tailDecayInterval = null;
+            }
             pendingDirection = { dx, dy };
             if (!moveInterval) {
                 const step = () => {
@@ -2649,6 +2979,10 @@
                     const nx = player.x + currentDirection.dx;
                     const ny = player.y + currentDirection.dy;
                     if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight && maze[ny][nx] === 0) {
+                        if (config.tail) {
+                            playerHistory.push({ x: player.x, y: player.y });
+                            if (playerHistory.length > 6) playerHistory.shift();
+                        }
                         player.x = nx;
                         player.y = ny;
                         SoundManager.play('move');
@@ -2738,6 +3072,22 @@
             }
             currentDirection = null;
             pendingDirection = null;
+            
+            // Start tail decay if tail is active
+            if (config.tail && playerHistory.length > 0) {
+                if (!tailDecayInterval) {
+                    tailDecayInterval = setInterval(() => {
+                        if (playerHistory.length > 0 && !moveInterval) {
+                            playerHistory.shift();
+                            draw();
+                        } else {
+                            clearInterval(tailDecayInterval);
+                            tailDecayInterval = null;
+                        }
+                    }, 80);
+                }
+            }
+
             // Redraw to reset ball size if dynamic ball is on
             draw();
         }
