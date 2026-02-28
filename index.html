@@ -296,6 +296,10 @@
             position: relative;
         }
 
+        #btn-quit:hover {
+            background-color: var(--hover-bg, #FDFCF0) !important;
+        }
+
         /* Key Gain Animation */
         @keyframes key-gain-pulse {
             0% { transform: scale(1); }
@@ -871,10 +875,13 @@
                     <div id="game-canvas-container" class="bg-white rounded-2xl w-full aspect-square flex items-center justify-center overflow-hidden relative shadow-sm border border-[--border-light]">
                         <canvas id="maze-canvas"></canvas>
                         <!-- Pause Overlay -->
-                        <div id="pause-overlay" class="hidden absolute inset-0 z-40 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
-                            <h2 class="text-4xl font-bold text-[#8B7E66] uppercase tracking-widest mb-4">Paused</h2>
-                            <button onclick="togglePause()" class="btn-ui btn-primary py-3 px-8 rounded-xl font-bold text-lg shadow-lg">
+                        <div id="pause-overlay" class="hidden absolute inset-0 z-40 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+                            <h2 class="text-4xl font-bold text-[#8B7E66] uppercase tracking-widest mb-2">Paused</h2>
+                            <button onclick="togglePause()" class="btn-ui btn-primary py-3 px-8 rounded-xl font-bold text-lg shadow-lg w-48">
                                 Resume
+                            </button>
+                            <button id="btn-quit" onclick="navigateTo('home')" class="btn-ui bg-white border border-[#D4CEAF] text-[#8B7E66] py-3 px-8 rounded-xl font-bold text-lg shadow-sm w-48 hover:bg-[#FDFCF0]">
+                                Quit to Menu
                             </button>
                         </div>
                         <!-- Time Out Overlay -->
@@ -1442,6 +1449,11 @@
             stopTimer();
             isPaused = false;
             document.getElementById('pause-overlay').classList.add('hidden');
+            // Reset pause button icon
+            const pauseBtn = document.getElementById('btn-pause');
+            if (pauseBtn) {
+                pauseBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+            }
             
             if(enemyInterval) clearInterval(enemyInterval);
             if(ghostInterval) clearInterval(ghostInterval);
@@ -1790,6 +1802,14 @@
 
             page.style.backgroundColor = theme.bg;
             
+            // Theme the Quit to Menu button
+            const quitBtn = document.getElementById('btn-quit');
+            if (quitBtn) {
+                quitBtn.style.backgroundColor = theme.bg;
+                quitBtn.style.color = theme.text;
+                quitBtn.style.borderColor = theme.border;
+            }
+
             // Theme the header (especially for mobile)
             const header = page.querySelector('header');
             if (header) {
@@ -1843,6 +1863,14 @@
 
             page.style.backgroundColor = '';
             
+            // Reset the Quit to Menu button
+            const quitBtn = document.getElementById('btn-quit');
+            if (quitBtn) {
+                quitBtn.style.backgroundColor = '';
+                quitBtn.style.color = '';
+                quitBtn.style.borderColor = '';
+            }
+
             const header = page.querySelector('header');
             if (header) {
                 header.style.backgroundColor = '';
@@ -3123,11 +3151,8 @@
                 
                 setTimeout(() => {
                     if (config.isCustom) {
-                        alert(`Maze Cleared! ${isFirstTime ? `+${gained} Keys` : '(Replay - No Keys)'}`);
                         navigateTo('custom');
                     } else {
-                        alert(`Level ${config.currentLevel} Cleared! ${isFirstTime ? `+${gained} Keys` : '(Replay - No Keys)'}`);
-                        
                         // Update max cleared
                         if (config.currentLevel > maxCleared) {
                             localStorage.setItem('maze_max_cleared', config.currentLevel);
@@ -3862,4 +3887,3 @@
     </script>
 </body>
 </html>
-
