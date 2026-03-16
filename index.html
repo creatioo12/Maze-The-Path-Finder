@@ -4,330 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Maze: The Path Finder</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-cream: #FDFCF0;
-            --accent-stone: #8B7E66;
-            --text-dark: #5D5443;
-            --border-light: #D4CEAF;
-        }
-
-        /* Prevent scrolling and ensure full height on mobile browsers */
-        html, body {
-            height: 100%;
-            width: 100%;
-            overflow: hidden;
-            position: fixed;
-        }
-
-        body {
-            font-family: 'Quicksand', sans-serif;
-            background-color: var(--bg-cream);
-            margin: 0;
-            color: var(--text-dark);
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        /* Sophisticated background for the game page only - Spotlight moving along periphery */
-        #page-game::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            z-index: -1;
-            background-image: 
-                radial-gradient(var(--accent-stone) 1.5px, transparent 1.5px);
-            background-size: 30px 30px;
-            background-position: center center;
-            pointer-events: none;
-            
-            /* Spotlight Mask: Only shows dots in a small moving circular area */
-            mask-image: radial-gradient(circle, black 20%, transparent 70%);
-            -webkit-mask-image: radial-gradient(circle, black 20%, transparent 70%);
-            mask-size: 350px 350px;
-            -webkit-mask-size: 350px 350px;
-            mask-repeat: no-repeat;
-            -webkit-mask-repeat: no-repeat;
-            
-            opacity: 0.8;
-            /* Animation: Moves the spotlight "window" along the edges */
-            animation: moveSpotlight 15s linear infinite;
-        }
-
-        @keyframes moveSpotlight {
-            0%   { mask-position: -10% -10%; }
-            25%  { mask-position: 110% -10%; }
-            50%  { mask-position: 110% 110%; }
-            75%  { mask-position: -10% 110%; }
-            100% { mask-position: -10% -10%; }
-        }
-
-        /* Page Transition Animation */
-        .page-fade {
-            animation: fadeIn 0.4s ease-out forwards;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Standard Button Styles */
-        .btn-ui {
-            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-            position: relative;
-            z-index: 10;
-        }
-
-        .btn-primary {
-            background-color: var(--accent-stone);
-            color: var(--bg-cream);
-            touch-action: manipulation;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(139, 126, 102, 0.3);
-            filter: brightness(1.05);
-        }
-
-        .btn-primary:active {
-            transform: translateY(-1px) scale(0.98);
-        }
-
-        .btn-secondary {
-            background-color: transparent;
-            color: var(--accent-stone);
-            border: 2px solid var(--border-light);
-            touch-action: manipulation;
-        }
-
-        .btn-secondary:hover {
-            background-color: white;
-            border-color: var(--accent-stone);
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary:active {
-            transform: scale(0.98);
-        }
-
-        /* Custom Page Specific Styles */
-        .option-card {
-            background: white;
-            border: 2px solid var(--border-light);
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-
-        .option-card.selected {
-            border-color: var(--accent-stone);
-            background-color: #F7F5E6;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(139, 126, 102, 0.1);
-        }
-
-        .responsive-title {
-            font-size: clamp(2.5rem, 12vw, 4.5rem);
-        }
-
-        .blob {
-            position: absolute;
-            z-index: 0;
-            filter: blur(60px);
-            opacity: 0.5;
-            pointer-events: none;
-        }
-
-        .safe-padding {
-            padding-bottom: env(safe-area-inset-bottom);
-            padding-top: env(safe-area-inset-top);
-        }
-
-        /* Subtle logo float animation */
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
-        }
-        .logo-animate {
-            animation: float 4s ease-in-out infinite;
-        }
-
-        /* Hide scrollbars but allow vertical scrolling on the custom page if needed */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        #maze-canvas {
-            image-rendering: auto;
-            max-width: 100%;
-            height: auto;
-            touch-action: none; /* Critical for swipe gestures */
-            /* Removed transition to prevent rotation animation on load */
-        }
-
-        /* Hint Dialog Styling */
-        .hint-dialog {
-            transform-origin: top left;
-            animation: popIn 0.2s ease-out;
-        }
-
-        @keyframes popIn {
-            from { opacity: 0; transform: scale(0.9) translateY(-10px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        /* Time Out Animation */
-        .timeout-overlay {
-            animation: timeoutFade 0.5s ease-out forwards;
-        }
-
-        @keyframes timeoutFade {
-            from { opacity: 0; transform: scale(0.8); }
-            to { opacity: 1; transform: scale(1); }
-        }
-
-        /* Hurry/Vibrate Animation */
-        @keyframes vibrate {
-            0% { transform: translate(0, 0) rotate(0); }
-            25% { transform: translate(1px, 1px) rotate(1deg); }
-            50% { transform: translate(-1px, -1px) rotate(-1deg); }
-            75% { transform: translate(1px, -1px) rotate(1deg); }
-            100% { transform: translate(0, 0) rotate(0); }
-        }
-        .hurry-vibrate {
-            animation: vibrate 0.1s linear infinite;
-        }
-        .text-hurry {
-            color: #ef4444 !important;
-            transform: scale(1.2);
-            transition: all 0.2s ease;
-        }
-
-        /* Currency Animation */
-        @keyframes coin-pop {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.3); }
-            100% { transform: scale(1); }
-        }
-        .coin-anim {
-            animation: coin-pop 0.3s ease-in-out;
-        }
-        .shake-error {
-            animation: vibrate 0.3s linear;
-            color: #ef4444;
-        }
-
-        /* NEW: Disabled Ability Style */
-        .ability-disabled {
-            opacity: 0.3;
-            filter: grayscale(100%);
-            cursor: not-allowed !important;
-            pointer-events: none;
-        }
-        
-        /* Zone Animation */
-        @keyframes pulse-zone {
-            0% { opacity: 0.6; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.1); }
-            100% { opacity: 0.6; transform: scale(1); }
-        }
-        .zone-active-icon {
-            animation: pulse-zone 1.5s infinite;
-            color: #22c55e;
-        }
-
-        @keyframes pulse-red {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .zone-countdown-active {
-            animation: pulse-red 0.8s infinite;
-            color: #ef4444;
-        }
-
-        /* Levels Grid Styling */
-        .levels-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-            gap: 12px;
-            padding: 20px;
-        }
-        .level-btn {
-            aspect-ratio: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: white;
-            border: 2px solid var(--border-light);
-            border-radius: 12px;
-            font-weight: bold;
-            color: var(--accent-stone);
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-        .level-btn:hover {
-            border-color: var(--accent-stone);
-            background: #F7F5E6;
-            transform: translateY(-2px);
-        }
-        .level-btn.active {
-            background: var(--accent-stone);
-            color: white;
-            border-color: var(--accent-stone);
-        }
-        .level-btn.locked {
-            opacity: 0.5;
-            cursor: not-allowed;
-            background: #f1f1f1;
-            border-color: #e5e5e5;
-            color: #999;
-            pointer-events: none;
-            position: relative;
-        }
-        
-        .locked {
-            opacity: 0.5;
-            cursor: not-allowed !important;
-            filter: grayscale(0.8);
-            pointer-events: none;
-            position: relative;
-        }
-
-        #btn-quit:hover {
-            background-color: var(--hover-bg, #FDFCF0) !important;
-        }
-
-        /* Key Gain Animation */
-        @keyframes key-gain-pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.4); color: #22c55e; }
-            100% { transform: scale(1); }
-        }
-        .key-gain-anim {
-            animation: key-gain-pulse 0.6s ease-out;
-        }
-        .key-gain-float {
-            position: absolute;
-            top: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #22c55e;
-            font-weight: 800;
-            font-size: 14px;
-            pointer-events: none;
-            white-space: nowrap;
-            animation: float-up 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-            z-index: 100;
-        }
-        @keyframes float-up {
-            0% { opacity: 0; transform: translate(-50%, 10px); }
-            20% { opacity: 1; transform: translate(-50%, 0); }
-            100% { opacity: 0; transform: translate(-50%, -40px); }
-        }
-    </style>
+    <link rel="stylesheet" href="index.css">
 </head>
 <body class="safe-padding">
     <div class="blob w-[30vw] h-[30vw] bg-[#F2E9D0] -top-10 -left-10 rounded-full"></div>
@@ -691,19 +368,19 @@
         </div>
 
         <!-- Game Page -->
-        <div id="page-game" class="hidden page-fade flex flex-col items-center justify-center w-full h-full px-4 pt-20 md:pt-0 text-center relative">
+        <div id="page-game" class="hidden page-fade game-page-responsive flex flex-col items-center justify-center w-full h-full px-4 pt-20 md:pt-0 text-center relative">
             
             <!-- Tutorial Overlay -->
             <div id="tutorial-overlay" class="hidden fixed inset-0 z-[100] pointer-events-none">
                 <div id="tutorial-box" class="absolute bg-white p-4 rounded-xl shadow-2xl border-2 border-[#8B7E66] w-[180px] pointer-events-auto transition-all duration-300">
                     <p id="tutorial-text" class="text-xs font-bold text-[#5D5443] leading-tight"></p>
-                    <div id="tutorial-pointer" class="absolute w-4 h-4 bg-white border-r-2 border-b-2 border-[#8B7E66] rotate-45"></div>
+                    <div id="tutorial-pointer" class="absolute w-4 h-4 bg-white border-r-2 border-b-2 border-[#8B7E66]"></div>
                     <button onclick="nextTutorial()" class="mt-3 w-full py-2 bg-[#8B7E66] text-white text-[10px] font-bold rounded-lg hover:brightness-110 transition-all">Got it!</button>
                 </div>
             </div>
 
             <!-- Unified Wrapper for Header and Maze -->
-            <div class="w-full max-w-[400px] md:max-w-[450px] lg:max-w-[500px] flex flex-col items-center">
+            <div class="maze-responsive-wrapper flex flex-col items-center">
                 <!-- Header with responsive layout -->
                 <header class="fixed top-0 left-0 w-full z-50 bg-[#FDFCF0]/90 backdrop-blur-sm px-4 py-3 border-b border-[--border-light] md:relative md:top-auto md:left-auto md:z-auto md:bg-transparent md:backdrop-blur-none md:px-1 md:py-0 md:border-none md:mb-4 flex items-center justify-between gap-1">
                     <div class="flex items-center gap-0.5 md:gap-1 relative shrink-0">
@@ -1137,8 +814,27 @@
             LEVEL_CONFIGS.push({ diff: 'hard', mode: extraModes[(i - 23) % extraModes.length] });
         }
 
+        // Safe Storage Wrapper
+        const SafeStorage = {
+            getItem: (key) => {
+                try {
+                    return localStorage.getItem(key);
+                } catch (e) {
+                    console.warn('Storage access denied:', e);
+                    return null;
+                }
+            },
+            setItem: (key, value) => {
+                try {
+                    localStorage.setItem(key, value);
+                } catch (e) {
+                    console.warn('Storage access denied:', e);
+                }
+            }
+        };
+
         let maze = [];
-        let player = { x: 1, y: 1 };
+        let player = { x: 1, y: 1, prevX: 1, prevY: 1, isMoving: false };
         let goal = { x: 0, y: 0 };
         let enemies = []; // Store active enemies
         let ghosts = []; // Store active ghosts
@@ -1176,7 +872,7 @@
         let currentRotation = 0;
 
         // Currency State
-        let totalKeys = parseInt(localStorage.getItem('maze_keys')) || 0;
+        let totalKeys = parseInt(SafeStorage.getItem('maze_keys')) || 0;
 
         // Ability Usage State
         let abilityUsage = {
@@ -1304,7 +1000,7 @@
         function spendKeys(amount, onSuccess) {
             if (totalKeys >= amount) {
                 totalKeys -= amount;
-                localStorage.setItem('maze_keys', totalKeys);
+                SafeStorage.setItem('maze_keys', totalKeys);
                 updateKeyDisplay();
                 // Visual feedback for spending
                 const display = document.getElementById('game-key-count');
@@ -1328,8 +1024,8 @@
 
         function playNow() {
             config.isCustom = false;
-            const maxCleared = parseInt(localStorage.getItem('maze_max_cleared')) || 0;
-            const lastLevel = parseInt(localStorage.getItem('maze_last_level')) || 1;
+            const maxCleared = parseInt(SafeStorage.getItem('maze_max_cleared')) || 0;
+            const lastLevel = parseInt(SafeStorage.getItem('maze_last_level')) || 1;
             const levelToStart = Math.min(lastLevel, maxCleared + 1);
             startLevel(levelToStart);
         }
@@ -1358,7 +1054,7 @@
             if (!container) return;
             container.innerHTML = '';
             
-            const maxCleared = parseInt(localStorage.getItem('maze_max_cleared')) || 0;
+            const maxCleared = parseInt(SafeStorage.getItem('maze_max_cleared')) || 0;
             const unlockedLevel = maxCleared + 1;
 
             for (let i = 1; i <= 50; i++) {
@@ -1376,7 +1072,7 @@
         }
 
         function startLevel(levelNum) {
-            const maxCleared = parseInt(localStorage.getItem('maze_max_cleared')) || 0;
+            const maxCleared = parseInt(SafeStorage.getItem('maze_max_cleared')) || 0;
             if (levelNum > maxCleared + 1) return;
 
             config.isCustom = false;
@@ -1384,7 +1080,7 @@
             const levelConfig = LEVEL_CONFIGS[levelNum - 1];
             config.difficulty = levelConfig.diff;
             config.mode = levelConfig.mode;
-            localStorage.setItem('maze_last_level', levelNum);
+            SafeStorage.setItem('maze_last_level', levelNum);
             navigateTo('game');
         }
 
@@ -1402,7 +1098,7 @@
                 resetGameTheme();
             }
             
-            const maxCleared = parseInt(localStorage.getItem('maze_max_cleared')) || 0;
+            const maxCleared = parseInt(SafeStorage.getItem('maze_max_cleared')) || 0;
 
             if (pageId === 'home') {
                 const customBtn = document.getElementById('btn-custom-level');
@@ -1417,8 +1113,8 @@
 
             if (pageId === 'custom') {
                 updateCustomLocks(maxCleared);
-                const savedDiff = localStorage.getItem('maze_custom_difficulty') || 'easy';
-                const savedMode = localStorage.getItem('maze_custom_mode') || 'normal';
+                const savedDiff = SafeStorage.getItem('maze_custom_difficulty') || 'easy';
+                const savedMode = SafeStorage.getItem('maze_custom_mode') || 'normal';
                 
                 // Ensure saved options are unlocked, else default to easy/normal
                 const thresholds = {
@@ -1455,11 +1151,11 @@
                 pauseBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
             }
             
-            if(enemyInterval) clearInterval(enemyInterval);
-            if(ghostInterval) clearInterval(ghostInterval);
-            if(zone.interval) clearInterval(zone.interval);
+            if(enemyInterval) cancelAnimationFrame(enemyInterval);
+            if(ghostInterval) cancelAnimationFrame(ghostInterval);
+            if(zone.interval) cancelAnimationFrame(zone.interval);
             if(zone.warningTimer) clearTimeout(zone.warningTimer);
-            if(zone.countdownTimer) clearInterval(zone.countdownTimer);
+            if(zone.countdownTimer) cancelAnimationFrame(zone.countdownTimer);
 
             // Hide hint menu when leaving page
             const hintMenu = document.getElementById('hint-menu');
@@ -1478,8 +1174,8 @@
             document.getElementById('zone-mini-timer').classList.add('hidden');
 
             if(pageId === 'custom') {
-                const savedDiff = localStorage.getItem('maze_custom_difficulty') || 'easy';
-                const savedMode = localStorage.getItem('maze_custom_mode') || 'normal';
+                const savedDiff = SafeStorage.getItem('maze_custom_difficulty') || 'easy';
+                const savedMode = SafeStorage.getItem('maze_custom_mode') || 'normal';
                 selectOption('difficulty', savedDiff);
                 selectOption('mode', savedMode);
             }
@@ -1629,14 +1325,40 @@
             box.style.left = `${boxLeft}px`;
             box.style.top = `${top}px`;
 
+            // Apply Theme Colors to Tutorial Box
+            const theme = config.themes ? GAME_THEMES[currentThemeIndex] : null;
+            if (theme) {
+                box.style.backgroundColor = theme.bg;
+                box.style.borderColor = theme.accent;
+                text.style.color = theme.text;
+                pointer.style.backgroundColor = theme.bg;
+                pointer.style.borderColor = theme.accent;
+                const btn = box.querySelector('button');
+                if (btn) {
+                    btn.style.backgroundColor = theme.accent;
+                    btn.style.color = theme.bg; // Use background color for text contrast on accent
+                }
+            } else {
+                box.style.backgroundColor = 'white';
+                box.style.borderColor = '#8B7E66';
+                text.style.color = '#5D5443';
+                pointer.style.backgroundColor = 'white';
+                pointer.style.borderColor = '#8B7E66';
+                const btn = box.querySelector('button');
+                if (btn) {
+                    btn.style.backgroundColor = '#8B7E66';
+                    btn.style.color = 'white';
+                }
+            }
+
             // Calculate pointer position relative to box to point exactly at targetX
             let pointerLeft = targetX - boxLeft;
             // Clamp pointer position so it stays within the box edges (with 15px padding)
             pointerLeft = Math.max(15, Math.min(boxWidth - 15, pointerLeft));
 
-            pointer.style.left = `${pointerLeft - 8}px`;
+            pointer.style.left = `${pointerLeft}px`;
             pointer.style.top = pointerTop;
-            pointer.style.transform = `translateY(-50%) ${pointerRotate}`;
+            pointer.style.transform = `translate(-50%, -50%) ${pointerRotate}`;
         }
 
         function nextTutorial() {
@@ -1766,7 +1488,7 @@
             if (!config.tail) {
                 playerHistory = [];
                 if (tailDecayInterval) {
-                    clearInterval(tailDecayInterval);
+                    cancelAnimationFrame(tailDecayInterval);
                     tailDecayInterval = null;
                 }
             }
@@ -2037,9 +1759,9 @@
              updateAbilityUI('zone', 'zone-ui');
 
              // Stop the wave immediately
-             if(zone.interval) clearInterval(zone.interval);
+             if(zone.interval) cancelAnimationFrame(zone.interval);
              if(zone.warningTimer) clearTimeout(zone.warningTimer);
-             if(zone.countdownTimer) clearInterval(zone.countdownTimer);
+             if(zone.countdownTimer) cancelAnimationFrame(zone.countdownTimer);
 
              zone.state = 'idle';
              zone.shrinkRadius = 0;
@@ -2129,7 +1851,7 @@
             if (category === 'shape' && value !== 'square') return;
             if (category === 'mode' && !['normal', 'time', 'dark', 'enemy', 'ghost', 'zone'].includes(value)) return;
 
-            const maxCleared = parseInt(localStorage.getItem('maze_max_cleared')) || 0;
+            const maxCleared = parseInt(SafeStorage.getItem('maze_max_cleared')) || 0;
             const thresholds = {
                 difficulty: { easy: 1, medium: 2, hard: 9 },
                 mode: { normal: 1, time: 3, dark: 5, enemy: 8, ghost: 11, zone: 16 }
@@ -2140,8 +1862,8 @@
             }
 
             config[category] = value;
-            if (category === 'difficulty') localStorage.setItem('maze_custom_difficulty', value);
-            if (category === 'mode') localStorage.setItem('maze_custom_mode', value);
+            if (category === 'difficulty') SafeStorage.setItem('maze_custom_difficulty', value);
+            if (category === 'mode') SafeStorage.setItem('maze_custom_mode', value);
 
             const categoryMap = {
                 'difficulty': ['easy', 'medium', 'hard'],
@@ -2179,7 +1901,7 @@
         function selectRandomOptions() {
             SoundManager.play('click');
             config.isCustom = true;
-            const maxCleared = parseInt(localStorage.getItem('maze_max_cleared')) || 0;
+            const maxCleared = parseInt(SafeStorage.getItem('maze_max_cleared')) || 0;
             const thresholds = {
                 difficulty: { easy: 1, medium: 2, hard: 9 },
                 mode: { normal: 1, time: 3, dark: 5, enemy: 8, ghost: 11, zone: 16 }
@@ -2320,7 +2042,7 @@
             const sizes = { easy: 35, medium: 55, hard: 75 };
             gridWidth = gridHeight = sizes[config.difficulty];
             maze = generateMaze(gridWidth, gridHeight);
-            player = { x: 1, y: 1 };
+            player = { x: 1, y: 1, isMoving: false };
             playerHistory = [];
             hintPath = [];
             pendingDirection = null;
@@ -2330,8 +2052,8 @@
             ghosts = []; // clear old ghosts
             isPaused = false;
             document.getElementById('pause-overlay').classList.add('hidden');
-            if(enemyInterval) clearInterval(enemyInterval);
-            if(ghostInterval) clearInterval(ghostInterval);
+            if(enemyInterval) cancelAnimationFrame(enemyInterval);
+            if(ghostInterval) cancelAnimationFrame(ghostInterval);
             
             // Randomly rotate the canvas
             const rot = [0, 90, 180, 270][Math.floor(currentRandom() * 4)];
@@ -2358,63 +2080,63 @@
                 const info = "E: 1 use, +2s\nM: 2 uses, +4s\nH: 3 uses, +6s\nUses reduce rewards.";
                 const infoShort = "E: 1 use\nM: 2 uses\nH: 3 uses\nUses reduce rewards.";
 
-                const hasSeenIntro = localStorage.getItem('maze_tutorial_intro');
+                const hasSeenIntro = SafeStorage.getItem('maze_tutorial_intro');
                 if (!hasSeenIntro && config.currentLevel === 1 && !config.isCustom) {
                     showTutorial([
                         { target: 'player', text: "You (Ball). Move to start." },
                         { target: 'goal', text: "Goal (Flag). Reach it to win." }
                     ]);
-                    localStorage.setItem('maze_tutorial_intro', 'true');
+                    SafeStorage.setItem('maze_tutorial_intro', 'true');
                 }
 
-                const hasSeenTime = localStorage.getItem('maze_tutorial_time');
+                const hasSeenTime = SafeStorage.getItem('maze_tutorial_time');
                 if (!hasSeenTime && config.mode === 'time' && !config.isCustom) {
                     showTutorial([
                         { id: 'time-ui', target: 'ability', text: `Time Mode! Use for extra time.\n${info}` }
                     ]);
-                    localStorage.setItem('maze_tutorial_time', 'true');
+                    SafeStorage.setItem('maze_tutorial_time', 'true');
                 }
 
-                const hasSeenDark = localStorage.getItem('maze_tutorial_dark');
+                const hasSeenDark = SafeStorage.getItem('maze_tutorial_dark');
                 if (!hasSeenDark && config.mode === 'dark' && !config.isCustom) {
                     showTutorial([
                         { id: 'dark-ui', target: 'ability', text: `Dark Mode! Use for light.\n${infoShort}` }
                     ]);
-                    localStorage.setItem('maze_tutorial_dark', 'true');
+                    SafeStorage.setItem('maze_tutorial_dark', 'true');
                 }
 
-                const hasSeenEnemy = localStorage.getItem('maze_tutorial_enemy');
+                const hasSeenEnemy = SafeStorage.getItem('maze_tutorial_enemy');
                 if (!hasSeenEnemy && config.mode === 'enemy' && !config.isCustom) {
                     showTutorial([
                         { id: 'enemy-ui', target: 'ability', text: `Guardians! Use to freeze them.\n${infoShort}` }
                     ]);
-                    localStorage.setItem('maze_tutorial_enemy', 'true');
+                    SafeStorage.setItem('maze_tutorial_enemy', 'true');
                 }
 
-                const hasSeenEnemyTypes = localStorage.getItem('maze_tutorial_enemy_types');
+                const hasSeenEnemyTypes = SafeStorage.getItem('maze_tutorial_enemy_types');
                 if (!hasSeenEnemyTypes && config.mode === 'enemy' && config.difficulty === 'medium' && !config.isCustom) {
                     showTutorial([
                         { target: 'enemy', index: 0, text: "Blue: Normal guardian." },
                         { target: 'enemy', index: 1, text: "Yellow: Fast & long chase." },
                         { target: 'enemy', index: 2, text: "Purple: Persistent hunter." }
                     ]);
-                    localStorage.setItem('maze_tutorial_enemy_types', 'true');
+                    SafeStorage.setItem('maze_tutorial_enemy_types', 'true');
                 }
 
-                const hasSeenGhost = localStorage.getItem('maze_tutorial_ghost');
+                const hasSeenGhost = SafeStorage.getItem('maze_tutorial_ghost');
                 if (!hasSeenGhost && config.mode === 'ghost' && !config.isCustom) {
                     showTutorial([
                         { id: 'ghost-ui', target: 'ability', text: `Ghosts! Use to reveal them.\n${infoShort}` }
                     ]);
-                    localStorage.setItem('maze_tutorial_ghost', 'true');
+                    SafeStorage.setItem('maze_tutorial_ghost', 'true');
                 }
 
-                const hasSeenZone = localStorage.getItem('maze_tutorial_zone');
+                const hasSeenZone = SafeStorage.getItem('maze_tutorial_zone');
                 if (!hasSeenZone && config.mode === 'zone' && !config.isCustom) {
                     showTutorial([
                         { id: 'zone-ui', target: 'ability', text: `Flood! Reach Green Zone.\n${infoShort}` }
                     ]);
-                    localStorage.setItem('maze_tutorial_zone', 'true');
+                    SafeStorage.setItem('maze_tutorial_zone', 'true');
                 }
             }, 500);
 
@@ -2440,9 +2162,9 @@
             zone.shrinkRadius = 0;
             zone.safePos = null;
             zone.triggeredCount = 0;
-            if(zone.interval) clearInterval(zone.interval);
+            if(zone.interval) cancelAnimationFrame(zone.interval);
             if(zone.warningTimer) clearTimeout(zone.warningTimer);
-            if(zone.countdownTimer) clearInterval(zone.countdownTimer);
+            if(zone.countdownTimer) cancelAnimationFrame(zone.countdownTimer);
             
             document.getElementById('zone-msg').classList.add('hidden');
             document.getElementById('zone-clear-msg').classList.add('hidden');
@@ -2596,17 +2318,30 @@
             
             draw();
 
-            if (zone.countdownTimer) clearInterval(zone.countdownTimer);
-            zone.countdownTimer = setInterval(() => {
-                if(isPaused || isTutorialActive) return;
-                zone.countdownValue--;
-                if(zone.countdownValue > 0) {
-                    timerEl.innerText = `${zone.countdownValue}s`;
+            if (zone.countdownTimer) cancelAnimationFrame(zone.countdownTimer);
+            let lastTick = Date.now();
+            function countdownLoop() {
+                if (document.getElementById('page-game').classList.contains('hidden')) return;
+                const now = Date.now();
+                if (now - lastTick >= 1000) {
+                    if (isPaused || isTutorialActive) {
+                        lastTick = now;
+                    } else {
+                        zone.countdownValue--;
+                        if(zone.countdownValue > 0) {
+                            timerEl.innerText = `${zone.countdownValue}s`;
+                        }
+                        if(zone.countdownValue <= 0) {
+                            cancelAnimationFrame(zone.countdownTimer);
+                            zone.countdownTimer = null;
+                            return;
+                        }
+                        lastTick = now;
+                    }
                 }
-                if(zone.countdownValue <= 0) {
-                    clearInterval(zone.countdownTimer);
-                }
-            }, 1000);
+                zone.countdownTimer = requestAnimationFrame(countdownLoop);
+            }
+            zone.countdownTimer = requestAnimationFrame(countdownLoop);
 
             // 3. Active Phase (Storm Converges)
             zone.warningTimer = setTimeout(() => {
@@ -2627,7 +2362,18 @@
                 
                 zone.shrinkRadius = maxDist + 2; // Add a buffer
                 
-                zone.interval = setInterval(expandDeadZone, zone.speed);
+                if (zone.interval) cancelAnimationFrame(zone.interval);
+                let lastTick = Date.now();
+                function zoneLoop() {
+                    if (document.getElementById('page-game').classList.contains('hidden')) return;
+                    const now = Date.now();
+                    if (now - lastTick >= zone.speed) {
+                        expandDeadZone();
+                        lastTick = now;
+                    }
+                    zone.interval = requestAnimationFrame(zoneLoop);
+                }
+                zone.interval = requestAnimationFrame(zoneLoop);
             }, 3000); 
         }
 
@@ -2665,7 +2411,7 @@
         }
 
         function completeZoneWave() {
-             clearInterval(zone.interval);
+             cancelAnimationFrame(zone.interval);
              zone.state = 'idle';
              zone.shrinkRadius = 0; // Reset
              zone.safePos = null;
@@ -2691,7 +2437,7 @@
              SoundManager.play('death');
              isPaused = true;
              stopMoving();
-             clearInterval(zone.interval);
+             cancelAnimationFrame(zone.interval);
              document.getElementById('zone-mini-timer').classList.add('hidden'); // Hide timer
              
              document.getElementById('timeout-msg').classList.remove('hidden');
@@ -2712,19 +2458,34 @@
             timeLeft = limits[config.difficulty];
             updateTimerDisplay();
 
-            gameTimer = setInterval(() => {
-                if (isPaused || isTutorialActive) return;
-                timeLeft--;
-                updateTimerDisplay();
-                if (timeLeft <= 0) {
-                    onTimeOut();
+            if (gameTimer) cancelAnimationFrame(gameTimer);
+            let lastTick = Date.now();
+            function timerLoop() {
+                if (document.getElementById('page-game').classList.contains('hidden')) return;
+                const now = Date.now();
+                if (now - lastTick >= 1000) {
+                    if (isPaused || isTutorialActive) {
+                        lastTick = now;
+                    } else {
+                        timeLeft--;
+                        updateTimerDisplay();
+                        if (timeLeft <= 0) {
+                            cancelAnimationFrame(gameTimer);
+                            gameTimer = null;
+                            onTimeOut();
+                            return;
+                        }
+                        lastTick = now;
+                    }
                 }
-            }, 1000);
+                gameTimer = requestAnimationFrame(timerLoop);
+            }
+            gameTimer = requestAnimationFrame(timerLoop);
         }
 
         function stopTimer() {
             if (gameTimer) {
-                clearInterval(gameTimer);
+                cancelAnimationFrame(gameTimer);
                 gameTimer = null;
             }
         }
@@ -2893,15 +2654,46 @@
 
             // Tail
             if (config.tail && playerHistory.length > 0) {
+                const now = Date.now();
+                const maxAge = 800; // ms
+                
+                // Filter out old segments
+                playerHistory = playerHistory.filter(p => now - p.time < maxAge);
+
                 playerHistory.forEach((pos, i) => {
-                    const alpha = (i + 1) / (playerHistory.length + 1) * 0.4;
+                    const age = now - pos.time;
+                    const lifeRatio = 1 - (age / maxAge);
+                    if (lifeRatio <= 0) return;
+
+                    const alpha = lifeRatio * 0.4;
                     ctx.fillStyle = themeColor;
                     ctx.globalAlpha = alpha;
+                    
+                    const r = drawCellSize * 0.35 * lifeRatio;
+                    const cx = pos.x * drawCellSize + drawCellSize/2;
+                    const cy = pos.y * drawCellSize + drawCellSize/2;
+                    
                     ctx.beginPath();
-                    // Slightly smaller radius for tail segments
-                    const r = drawCellSize * 0.3 * (0.6 + (i / playerHistory.length) * 0.4);
-                    ctx.arc(pos.x * drawCellSize + drawCellSize/2, pos.y * drawCellSize + drawCellSize/2, r, 0, Math.PI * 2);
+                    ctx.arc(cx, cy, r, 0, Math.PI * 2);
                     ctx.fill();
+                    
+                    // Draw intermediate point for smoothness if there's a next point
+                    if (i < playerHistory.length - 1) {
+                        const next = playerHistory[i+1];
+                        const midX = (pos.x + next.x) / 2;
+                        const midY = (pos.y + next.y) / 2;
+                        const nextAge = now - next.time;
+                        const midAge = (age + nextAge) / 2;
+                        const midLife = 1 - (midAge / maxAge);
+                        
+                        if (midLife > 0) {
+                            ctx.globalAlpha = midLife * 0.4;
+                            const midR = drawCellSize * 0.35 * midLife;
+                            ctx.beginPath();
+                            ctx.arc(midX * drawCellSize + drawCellSize/2, midY * drawCellSize + drawCellSize/2, midR, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
                 });
                 ctx.globalAlpha = 1.0;
             }
@@ -2912,7 +2704,7 @@
             
             // Dynamic Ball Sizing
             let playerRadius = drawCellSize * 0.35;
-            if (config.dynamicBall && moveInterval) {
+            if (config.dynamicBall && player.isMoving) {
                 playerRadius = drawCellSize * 0.45;
             }
             
@@ -2983,11 +2775,12 @@
         function startMoving(dx, dy) {
             if (isPaused || isTutorialActive) return;
             if (tailDecayInterval) {
-                clearInterval(tailDecayInterval);
+                cancelAnimationFrame(tailDecayInterval);
                 tailDecayInterval = null;
             }
             pendingDirection = { dx, dy };
             if (!moveInterval) {
+                player.isMoving = true;
                 const step = () => {
                     if (isPaused || isTutorialActive) return;
                     if (pendingDirection) {
@@ -3008,9 +2801,11 @@
                     const ny = player.y + currentDirection.dy;
                     if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight && maze[ny][nx] === 0) {
                         if (config.tail) {
-                            playerHistory.push({ x: player.x, y: player.y });
-                            if (playerHistory.length > 6) playerHistory.shift();
+                            playerHistory.push({ x: player.x, y: player.y, time: Date.now() });
+                            if (playerHistory.length > 15) playerHistory.shift();
                         }
+                        player.prevX = player.x;
+                        player.prevY = player.y;
                         player.x = nx;
                         player.y = ny;
                         SoundManager.play('move');
@@ -3042,13 +2837,13 @@
                         }
 
                         // NEW: Level 6 Guide Point Tutorial Trigger
-                        if (config.currentLevel === 6 && !config.isCustom && !localStorage.getItem('maze_tutorial_guide')) {
+                        if (config.currentLevel === 6 && !config.isCustom && !SafeStorage.getItem('maze_tutorial_guide')) {
                             const nearPoint = guidePoints.some(pt => Math.abs(pt.x - player.x) <= 2 && Math.abs(pt.y - player.y) <= 2);
                             if (nearPoint) {
                                 showTutorial([
                                     { target: 'guide', index: 0, text: "Guiding Dots! This indicates that the path you traveled until this dot is correct." }
                                 ]);
-                                localStorage.setItem('maze_tutorial_guide', 'true');
+                                SafeStorage.setItem('maze_tutorial_guide', 'true');
                             }
                         }
 
@@ -3089,30 +2884,53 @@
                     }
                 };
                 step(); 
-                moveInterval = setInterval(step, MOVE_SPEED);
+                if (moveInterval) cancelAnimationFrame(moveInterval);
+                let lastTick = Date.now();
+                function moveLoop() {
+                    if (document.getElementById('page-game').classList.contains('hidden')) return;
+                    const now = Date.now();
+                    if (now - lastTick >= MOVE_SPEED) {
+                        step();
+                        lastTick = now;
+                    }
+                    moveInterval = requestAnimationFrame(moveLoop);
+                }
+                moveInterval = requestAnimationFrame(moveLoop);
             }
         }
 
         function stopMoving() {
             if (moveInterval) {
-                clearInterval(moveInterval);
+                cancelAnimationFrame(moveInterval);
                 moveInterval = null;
             }
+            player.isMoving = false;
             currentDirection = null;
             pendingDirection = null;
             
             // Start tail decay if tail is active
             if (config.tail && playerHistory.length > 0) {
                 if (!tailDecayInterval) {
-                    tailDecayInterval = setInterval(() => {
+                    function decayLoop() {
+                        if (document.getElementById('page-game').classList.contains('hidden')) return;
+                        
+                        const now = Date.now();
+                        const maxAge = 800;
+                        
+                        // Filter out old segments
+                        const initialCount = playerHistory.length;
+                        playerHistory = playerHistory.filter(p => now - p.time < maxAge);
+                        
                         if (playerHistory.length > 0 && !moveInterval) {
-                            playerHistory.shift();
                             draw();
+                            tailDecayInterval = requestAnimationFrame(decayLoop);
                         } else {
-                            clearInterval(tailDecayInterval);
+                            if (initialCount > 0) draw(); // Final draw to clear
+                            cancelAnimationFrame(tailDecayInterval);
                             tailDecayInterval = null;
                         }
-                    }, 80);
+                    }
+                    tailDecayInterval = requestAnimationFrame(decayLoop);
                 }
             }
 
@@ -3125,9 +2943,9 @@
                 SoundManager.play('win');
                 stopMoving();
                 stopTimer();
-                if(enemyInterval) clearInterval(enemyInterval);
-                if(ghostInterval) clearInterval(ghostInterval);
-                if(zone.interval) clearInterval(zone.interval);
+                if(enemyInterval) cancelAnimationFrame(enemyInterval);
+                if(ghostInterval) cancelAnimationFrame(ghostInterval);
+                if(zone.interval) cancelAnimationFrame(zone.interval);
                 
                 // Calculate Reward
                 const diffReward = { easy: 1, medium: 2, hard: 3 };
@@ -3138,12 +2956,12 @@
                 const penalty = abilityUsage.time + abilityUsage.dark + abilityUsage.enemy + abilityUsage.ghost + abilityUsage.zone;
                 gained = Math.max(0, gained - penalty);
                 
-                const maxCleared = parseInt(localStorage.getItem('maze_max_cleared')) || 0;
+                const maxCleared = parseInt(SafeStorage.getItem('maze_max_cleared')) || 0;
                 const isFirstTime = config.isCustom ? true : (config.currentLevel > maxCleared);
                 
                 if (isFirstTime && gained > 0) {
                     totalKeys += gained;
-                    localStorage.setItem('maze_keys', totalKeys);
+                    SafeStorage.setItem('maze_keys', totalKeys);
                     animateKeyGain(gained);
                 } else {
                     updateKeyDisplay();
@@ -3155,7 +2973,7 @@
                     } else {
                         // Update max cleared
                         if (config.currentLevel > maxCleared) {
-                            localStorage.setItem('maze_max_cleared', config.currentLevel);
+                            SafeStorage.setItem('maze_max_cleared', config.currentLevel);
                         }
 
                         if (config.currentLevel < 50) {
@@ -3215,6 +3033,7 @@
                 const prototype = types[i % 3]; 
                 enemies.push({
                     x: ex, y: ey,
+                    prevX: ex, prevY: ey,
                     ...prototype,
                     state: 'wandering', // wandering, chasing, returning
                     returnPos: null,    // where to return to
@@ -3224,9 +3043,19 @@
                 });
             }
 
-            if(enemyInterval) clearInterval(enemyInterval);
-            // Run loop fast to check individual speeds (50ms tick)
-            enemyInterval = setInterval(moveEnemies, 50); 
+            if(enemyInterval) cancelAnimationFrame(enemyInterval);
+            
+            let lastTick = Date.now();
+            function enemyLoop() {
+                if (document.getElementById('page-game').classList.contains('hidden')) return;
+                const now = Date.now();
+                if (now - lastTick >= 50) {
+                    moveEnemies();
+                    lastTick = now;
+                }
+                enemyInterval = requestAnimationFrame(enemyLoop);
+            }
+            enemyInterval = requestAnimationFrame(enemyLoop);
         }
 
         function moveEnemies() {
@@ -3349,13 +3178,22 @@
 
                 // Update position
                 if(nextMove) {
+                    enemy.prevX = enemy.x;
+                    enemy.prevY = enemy.y;
                     enemy.x = nextMove.x;
                     enemy.y = nextMove.y;
                 }
 
                 // Check collision (Only if not frozen/harmless)
-                if(!enemiesFrozen && enemy.x === player.x && enemy.y === player.y) {
-                    playerHit = true;
+                if(!enemiesFrozen) {
+                    // Direct collision
+                    if (enemy.x === player.x && enemy.y === player.y) {
+                        playerHit = true;
+                    }
+                    // Swap collision (Pass-through fix)
+                    else if (enemy.prevX === player.x && enemy.prevY === player.y && enemy.x === player.prevX && enemy.y === player.prevY) {
+                        playerHit = true;
+                    }
                 }
             });
 
@@ -3378,7 +3216,7 @@
                 SoundManager.play('death');
                 isPaused = true;
                 stopMoving();
-                clearInterval(enemyInterval);
+                if(enemyInterval) cancelAnimationFrame(enemyInterval);
                 document.getElementById('timeout-msg').classList.remove('hidden');
                 document.querySelector('#timeout-msg h2').innerText = "CAUGHT!";
                 document.querySelector('#timeout-msg h2').classList.replace('text-red-500', 'text-purple-600');
@@ -3572,6 +3410,7 @@
                 }
                 ghosts.push({
                     x: gx, y: gy,
+                    prevX: gx, prevY: gy,
                     color: colors[i % colors.length],
                     state: 'wandering', // wandering (hidden), chasing (visible), returning
                     visible: false,
@@ -3582,8 +3421,19 @@
                 });
             }
 
-            if(ghostInterval) clearInterval(ghostInterval);
-            ghostInterval = setInterval(moveGhosts, 50);
+            if(ghostInterval) cancelAnimationFrame(ghostInterval);
+            
+            let lastTick = Date.now();
+            function ghostLoop() {
+                if (document.getElementById('page-game').classList.contains('hidden')) return;
+                const now = Date.now();
+                if (now - lastTick >= 50) {
+                    moveGhosts();
+                    lastTick = now;
+                }
+                ghostInterval = requestAnimationFrame(ghostLoop);
+            }
+            ghostInterval = requestAnimationFrame(ghostLoop);
         }
 
         function moveGhosts() {
@@ -3700,13 +3550,22 @@
 
                 // Update Position
                 if (nextMove) {
+                    ghost.prevX = ghost.x;
+                    ghost.prevY = ghost.y;
                     ghost.x = nextMove.x;
                     ghost.y = nextMove.y;
                 }
 
                 // Check Collision (Only if visible or revealed)
-                if ((ghost.visible || ghostsRevealed) && ghost.x === player.x && ghost.y === player.y) {
-                    playerHit = true;
+                if (ghost.visible || ghostsRevealed) {
+                    // Direct collision
+                    if (ghost.x === player.x && ghost.y === player.y) {
+                        playerHit = true;
+                    }
+                    // Swap collision (Pass-through fix)
+                    else if (ghost.prevX === player.x && ghost.prevY === player.y && ghost.x === player.prevX && ghost.y === player.prevY) {
+                        playerHit = true;
+                    }
                 }
             });
             
@@ -3718,7 +3577,7 @@
                 SoundManager.play('death');
                 isPaused = true;
                 stopMoving();
-                clearInterval(ghostInterval);
+                if(ghostInterval) cancelAnimationFrame(ghostInterval);
                 document.getElementById('timeout-msg').classList.remove('hidden');
                 document.querySelector('#timeout-msg h2').innerText = "BOO!";
                 document.querySelector('#timeout-msg h2').classList.replace('text-red-500', 'text-purple-600');
@@ -3846,6 +3705,10 @@
             if (isPaused) return;
             const key = e.key.toLowerCase();
             if (keyMap[key]) {
+                // Prevent default scrolling for arrow keys
+                if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key)) {
+                    e.preventDefault();
+                }
                 activeKeys.add(key);
                 const dir = keyMap[key];
                 // Apply rotation transform logic for keyboard
@@ -3879,8 +3742,17 @@
             }
         });
 
+        let resizeTimeout;
         window.addEventListener('resize', () => {
-            if (!document.getElementById('page-game').classList.contains('hidden')) draw();
+            if (resizeTimeout) clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                const container = document.getElementById('game-canvas-container');
+                if (!container) return;
+                const rect = container.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) {
+                    if (!document.getElementById('page-game').classList.contains('hidden')) draw();
+                }
+            }, 100);
         });
 
         document.addEventListener('touchstart', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
